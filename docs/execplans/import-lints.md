@@ -228,6 +228,24 @@ substantially expand scope beyond the import.
   test-isolation fix; it reported zero findings.
 - [x] 2026-05-26: Milestone 2 passed deterministic gates and CodeRabbit review;
   commit is ready.
+- [x] 2026-05-26: Committed Milestone 2 as
+  `5655cea Add df12 Oxlint plugin tests`.
+- [x] 2026-05-26: Started Milestone 3 and tightened `biome.jsonc` by enabling
+  Git VCS metadata, disabling Assist, including `.oxlintrc.json` and
+  `tools/**/*`, and enabling `noExcessiveCognitiveComplexity`,
+  `noExcessiveLinesPerFunction`, and `useMaxParams` with the planned
+  thresholds.
+- [x] 2026-05-26: Ran `bun run fmt`; Biome formatted one newly included file.
+- [x] 2026-05-26: Ran Milestone 3 deterministic gates before this progress
+  update. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
+  passed.
+- [x] 2026-05-26: Reran Milestone 3 deterministic gates after this progress
+  update. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
+  passed.
+- [x] 2026-05-26: Ran `coderabbit review --agent` for Milestone 3; it reported
+  zero findings.
+- [x] 2026-05-26: Milestone 3 passed deterministic gates and CodeRabbit review;
+  commit is ready.
 
 ## Surprises & Discoveries
 
@@ -266,6 +284,10 @@ The second Milestone 2 CodeRabbit review found that the invalid-baseline test
 left the plugin's process-local baseline cache mutated after completion. The
 test now clears the cache in `finally`, after restoring the working directory
 and removing the temporary workspace.
+
+Milestone 3 showed that the imported plugin and ported tests already comply
+with the stricter Biome complexity limits after `.oxlintrc.json` and
+`tools/**/*` were added to `files.includes`. No Biome suppressions were needed.
 
 Upstream `simulacat-core` runs Biome and Oxlint separately: `lint` depends on
 `biomejs` and `oxlint`, `biomejs` runs `bun run lint`, and `oxlint` runs
@@ -317,6 +339,11 @@ file path while still allowing Oxlint to load the JavaScript plugin file.
 `maxLogicalOperators` and document `testInternals`. The changes preserve the
 rule contract while addressing correctness and maintainability findings from
 CodeRabbit.
+
+2026-05-26: Preserve the existing formatter style choices in `biome.jsonc` for
+Milestone 3 and limit the change to stricter lint coverage plus Assist/VCS
+metadata. This activates the planned code-quality contract without mixing in an
+unrelated quote-style or line-width migration.
 
 ## Implementation Plan
 

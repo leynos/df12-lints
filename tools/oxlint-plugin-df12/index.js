@@ -4,28 +4,37 @@
  * The plugin uses Oxlint's ESLint-compatible JavaScript plugin API so the
  * project can enforce local rules without a separate linting process.
  */
-import {existsSync, readFileSync} from 'node:fs';
-import path from 'node:path';
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 const MODULE_JSDOC_PATTERN =
   /^(?:#![^\n]*\n)?(?:\/\*![\s\S]*?\*\/\s*)?(?:(?:'use strict'|"use strict");\s*)?\s*\/\*\*[\s\S]*?@file[\s\S]*?\*\//;
 
-const FUNCTION_NODE_TYPES = new Set(['ArrowFunctionExpression', 'FunctionDeclaration', 'FunctionExpression']);
-const TEST_STATEMENT_NODE_TYPES = new Set(['DoWhileStatement', 'ForStatement', 'IfStatement', 'WhileStatement']);
+const FUNCTION_NODE_TYPES = new Set([
+  "ArrowFunctionExpression",
+  "FunctionDeclaration",
+  "FunctionExpression",
+]);
+const TEST_STATEMENT_NODE_TYPES = new Set([
+  "DoWhileStatement",
+  "ForStatement",
+  "IfStatement",
+  "WhileStatement",
+]);
 let baselineCache = null;
 
 /** Loads baseline entries from the repository root. */
 function loadBaseline() {
   if (baselineCache) return baselineCache;
 
-  const baselinePath = path.join(process.cwd(), '.jsdoc-baseline.json');
+  const baselinePath = path.join(process.cwd(), ".jsdoc-baseline.json");
   if (!existsSync(baselinePath)) {
     baselineCache = new Set();
     return baselineCache;
   }
 
   try {
-    const parsed = JSON.parse(readFileSync(baselinePath, 'utf8'));
+    const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
     baselineCache = new Set(parsed.entries ?? []);
     return baselineCache;
   } catch {
@@ -41,8 +50,8 @@ function resetBaselineCache() {
 
 /** Returns a repository-relative path for a linted file. */
 function relativeFilename(context) {
-  const filename = context.filename ?? context.getFilename?.() ?? '';
-  return path.relative(process.cwd(), filename).replaceAll(path.sep, '/');
+  const filename = context.filename ?? context.getFilename?.() ?? "";
+  return path.relative(process.cwd(), filename).replaceAll(path.sep, "/");
 }
 
 /** Builds the documentation baseline key for a function record. */
@@ -57,13 +66,14 @@ function isFunctionNode(node) {
 
 /** Reports whether a statement is directly under the program. */
 function isTopLevelStatement(node) {
-  return node?.parent?.type === 'Program';
+  return node?.parent?.type === "Program";
 }
 
 /** Reports whether a declaration is exported directly or by re-export. */
 function isExported(node, exportedNames = new Set()) {
   const directlyExported =
-    node?.parent?.type === 'ExportNamedDeclaration' || node?.parent?.type === 'ExportDefaultDeclaration';
+    node?.parent?.type === "ExportNamedDeclaration" ||
+    node?.parent?.type === "ExportDefaultDeclaration";
   return directlyExported || exportedNames.has(functionName(node));
 }
 
@@ -74,8 +84,8 @@ function collectExportedNames(program) {
 
 /** Returns local names from one export statement. */
 function exportedNamesFromStatement(statement) {
-  if (statement.type === 'ExportDefaultDeclaration') return defaultExportedNames(statement);
-  if (statement.type === 'ExportNamedDeclaration') {
+  if (statement.type === "ExportDefaultDeclaration") return defaultExportedNames(statement);
+  if (statement.type === "ExportNamedDeclaration") {
     return (statement.specifiers ?? []).flatMap((specifier) => exportedSpecifierName(specifier));
   }
   return [];
@@ -84,13 +94,13 @@ function exportedNamesFromStatement(statement) {
 /** Returns the local name exported by one export specifier. */
 function exportedSpecifierName(specifier) {
   const local = specifier.local;
-  return local?.type === 'Identifier' ? [local.name] : [];
+  return local?.type === "Identifier" ? [local.name] : [];
 }
 
 /** Returns local names from `export default name` statements. */
 function defaultExportedNames(statement) {
   const declaration = statement.declaration;
-  if (declaration?.type === 'Identifier') return [declaration.name];
+  if (declaration?.type === "Identifier") return [declaration.name];
   return [];
 }
 
@@ -102,23 +112,26 @@ function docsNodeForFunction(node) {
 /** Returns the top-level statement that owns variable comments. */
 function docsNodeForVariable(node) {
   const declaration = node.parent;
-  return declaration?.parent?.type === 'ExportNamedDeclaration' ? declaration.parent : declaration;
+  return declaration?.parent?.type === "ExportNamedDeclaration" ? declaration.parent : declaration;
 }
 
 /** Reports whether a variable declarator is a covered top-level function. */
 function isTopLevelFunctionVariable(node) {
   const declaration = node.parent;
-  return declaration?.parent?.type === 'Program' || declaration?.parent?.type === 'ExportNamedDeclaration';
+  return (
+    declaration?.parent?.type === "Program" ||
+    declaration?.parent?.type === "ExportNamedDeclaration"
+  );
 }
 
 /** Returns a stable name for a function declaration. */
 function functionName(node) {
-  return node.id?.name ?? 'default';
+  return node.id?.name ?? "default";
 }
 
 /** Returns a stable name for a variable declarator. */
 function variableName(node) {
-  return node.id?.type === 'Identifier' ? node.id.name : undefined;
+  return node.id?.type === "Identifier" ? node.id.name : undefined;
 }
 
 /** Creates a function record for a top-level function declaration. */
@@ -127,7 +140,7 @@ function functionRecord(node, exportedNames = new Set()) {
     docsNode: docsNodeForFunction(node),
     functionNode: node,
     isPublic: isExported(node, exportedNames),
-    name: functionName(node)
+    name: functionName(node),
   };
 }
 
@@ -137,8 +150,8 @@ function variableFunctionRecord(node, exportedNames = new Set()) {
   return {
     docsNode: docsNodeForVariable(node),
     functionNode: node.init,
-    isPublic: node.parent?.parent?.type === 'ExportNamedDeclaration' || exportedNames.has(name),
-    name
+    isPublic: node.parent?.parent?.type === "ExportNamedDeclaration" || exportedNames.has(name),
+    name,
   };
 }
 
@@ -148,14 +161,16 @@ function defaultFunctionExpressionRecord(node) {
     docsNode: node.parent,
     functionNode: node,
     isPublic: true,
-    name: functionName(node)
+    name: functionName(node),
   };
 }
 
 /** Parses the closest leading JSDoc block for a declaration. */
 function parseLeadingJsDoc(context, node) {
   const comments = context.sourceCode.getCommentsBefore(node) ?? [];
-  const jsdoc = comments.findLast((comment) => comment.type === 'Block' && comment.value.trimStart().startsWith('*'));
+  const jsdoc = comments.findLast(
+    (comment) => comment.type === "Block" && comment.value.trimStart().startsWith("*"),
+  );
   if (!jsdoc) return undefined;
   return parseJsDocBlock(`/*${jsdoc.value}*/`);
 }
@@ -168,22 +183,22 @@ function parseJsDocBlock(rawComment) {
     recordJsDocLine(line, descriptionLines, tags);
   }
 
-  return {descriptionLines, tags};
+  return { descriptionLines, tags };
 }
 
 /** Normalizes a raw JSDoc block into trimmed content lines. */
 function jsDocLines(rawComment) {
   return rawComment
-    .replace(/^\/\*\*/, '')
-    .replace(/\*\/$/, '')
+    .replace(/^\/\*\*/, "")
+    .replace(/\*\/$/, "")
     .split(/\r?\n/)
-    .map((line) => line.replace(/^\s*\* ?/, '').trim());
+    .map((line) => line.replace(/^\s*\* ?/, "").trim());
 }
 
 /** Records one JSDoc content line as description text or a tag. */
 function recordJsDocLine(line, descriptionLines, tags) {
   if (!line) return;
-  if (line.startsWith('@')) {
+  if (line.startsWith("@")) {
     recordJsDocTag(line, tags);
     return;
   }
@@ -192,7 +207,7 @@ function recordJsDocLine(line, descriptionLines, tags) {
 
 /** Records one normalized JSDoc tag line. */
 function recordJsDocTag(line, tags) {
-  const [, tagName, tagText = ''] = /^@(\S+)\s*(.*)$/.exec(line) ?? [];
+  const [, tagName, tagText = ""] = /^@(\S+)\s*(.*)$/.exec(line) ?? [];
   if (!tagName) return;
   tags.set(tagName, [...(tags.get(tagName) ?? []), tagText.trim()]);
 }
@@ -205,29 +220,30 @@ function parameterNames(node) {
 /** Returns identifier names bound by a parameter pattern. */
 function boundNames(node) {
   if (!node) return [];
-  if (node.type === 'Identifier') return [node.name];
-  if (node.type === 'AssignmentPattern') return boundNames(node.left);
-  if (node.type === 'RestElement') return boundNames(node.argument);
-  if (node.type === 'ObjectPattern') return node.properties.flatMap((property) => propertyNames(property));
-  if (node.type === 'ArrayPattern') return node.elements.flatMap((element) => boundNames(element));
+  if (node.type === "Identifier") return [node.name];
+  if (node.type === "AssignmentPattern") return boundNames(node.left);
+  if (node.type === "RestElement") return boundNames(node.argument);
+  if (node.type === "ObjectPattern")
+    return node.properties.flatMap((property) => propertyNames(property));
+  if (node.type === "ArrayPattern") return node.elements.flatMap((element) => boundNames(element));
   return [];
 }
 
 /** Returns identifier names bound by an object pattern property. */
 function propertyNames(node) {
-  if (node.type === 'Property') return boundNames(node.value);
-  if (node.type === 'RestElement') return boundNames(node.argument);
+  if (node.type === "Property") return boundNames(node.value);
+  if (node.type === "RestElement") return boundNames(node.argument);
   return [];
 }
 
 /** Reports whether a node is a return statement with a value. */
 function isValueReturn(node) {
-  return node?.type === 'ReturnStatement' && Boolean(node.argument);
+  return node?.type === "ReturnStatement" && Boolean(node.argument);
 }
 
 /** Reports whether an arrow function has an expression body. */
 function hasExpressionBody(node) {
-  return node.type === 'ArrowFunctionExpression' && node.body?.type !== 'BlockStatement';
+  return node.type === "ArrowFunctionExpression" && node.body?.type !== "BlockStatement";
 }
 
 /** Reports whether a function body returns a value. */
@@ -238,7 +254,7 @@ function returnsValue(node) {
 
 /** Reports whether a node is a throw or promise rejection. */
 function isThrowOrReject(node) {
-  return node?.type === 'ThrowStatement' || isPromiseRejectCall(node);
+  return node?.type === "ThrowStatement" || isPromiseRejectCall(node);
 }
 
 /** Reports whether a function can throw or reject from its own body. */
@@ -248,24 +264,24 @@ function canThrow(node) {
 
 /** Reports whether a node calls `Promise.reject(...)`. */
 function isPromiseRejectCall(node) {
-  if (node?.type !== 'CallExpression') return false;
+  if (node?.type !== "CallExpression") return false;
   return isPromiseRejectMember(node.callee);
 }
 
 /** Reports whether a member expression reads `Promise.reject`. */
 function isPromiseRejectMember(node) {
-  if (node?.type !== 'MemberExpression') return false;
+  if (node?.type !== "MemberExpression") return false;
   return isPromiseObject(node.object) && isRejectProperty(node.property);
 }
 
 /** Reports whether a member object is the global `Promise` identifier. */
 function isPromiseObject(node) {
-  return node?.type === 'Identifier' && node.name === 'Promise';
+  return node?.type === "Identifier" && node.name === "Promise";
 }
 
 /** Reports whether a member property is the `reject` identifier. */
 function isRejectProperty(node) {
-  return node?.type === 'Identifier' && node.name === 'reject';
+  return node?.type === "Identifier" && node.name === "reject";
 }
 
 /** Searches a subtree while skipping nested function bodies. */
@@ -278,7 +294,9 @@ function containsNode(node, root, predicate) {
 
 /** Returns child AST nodes for a generic ESTree node. */
 function childNodes(node) {
-  return Object.entries(node).flatMap(([key, value]) => (key === 'parent' ? [] : nodeValues(value)));
+  return Object.entries(node).flatMap(([key, value]) =>
+    key === "parent" ? [] : nodeValues(value),
+  );
 }
 
 /** Converts a node property value into child AST nodes. */
@@ -289,7 +307,7 @@ function nodeValues(value) {
 
 /** Reports whether a value looks like an ESTree AST node. */
 function isAstNode(value) {
-  return Boolean(value && typeof value.type === 'string');
+  return Boolean(value && typeof value.type === "string");
 }
 
 /** Reports whether a function record is skipped by the baseline. */
@@ -299,8 +317,11 @@ function isBaselined(context, record, baseline) {
 
 /** Reports a missing JSDoc block for a covered function. */
 function reportMissingJsDoc(context, record) {
-  const visibility = record.isPublic ? 'Exported' : 'Private';
-  context.report({node: record.docsNode, message: `${visibility} function "${record.name}" needs JSDoc.`});
+  const visibility = record.isPublic ? "Exported" : "Private";
+  context.report({
+    node: record.docsNode,
+    message: `${visibility} function "${record.name}" needs JSDoc.`,
+  });
 }
 
 /** Validates public JSDoc description text. */
@@ -308,18 +329,18 @@ function checkPublicDescription(context, record, docs) {
   if (docs.descriptionLines.length > 0) return;
   context.report({
     node: record.docsNode,
-    message: `Exported function "${record.name}" needs a usage-oriented description.`
+    message: `Exported function "${record.name}" needs a usage-oriented description.`,
   });
 }
 
 /** Validates public JSDoc parameter tags. */
 function checkPublicParams(context, record, docs) {
-  const paramTags = docs.tags.get('param') ?? [];
+  const paramTags = docs.tags.get("param") ?? [];
   for (const name of parameterNames(record.functionNode)) {
     if (hasParamTag(paramTags, name)) continue;
     context.report({
       node: record.docsNode,
-      message: `Exported function "${record.name}" must document parameter "${name}".`
+      message: `Exported function "${record.name}" must document parameter "${name}".`,
     });
   }
 }
@@ -331,12 +352,12 @@ function hasParamTag(paramTags, name) {
 
 /** Reports whether return documentation is absent. */
 function lacksReturnDocumentation(docs) {
-  return !docs.tags.has('returns') && !docs.tags.has('return');
+  return !docs.tags.has("returns") && !docs.tags.has("return");
 }
 
 /** Reports whether error documentation is absent. */
 function lacksErrorDocumentation(docs) {
-  return !docs.tags.has('throws') && !docs.tags.has('rejects');
+  return !docs.tags.has("throws") && !docs.tags.has("rejects");
 }
 
 /** Validates public JSDoc return tags. */
@@ -345,7 +366,7 @@ function checkPublicReturn(context, record, docs) {
   if (!lacksReturnDocumentation(docs)) return;
   context.report({
     node: record.docsNode,
-    message: `Exported function "${record.name}" must document its return value.`
+    message: `Exported function "${record.name}" must document its return value.`,
   });
 }
 
@@ -355,7 +376,7 @@ function checkPublicThrows(context, record, docs) {
   if (!lacksErrorDocumentation(docs)) return;
   context.report({
     node: record.docsNode,
-    message: `Exported function "${record.name}" must document thrown or rejected errors.`
+    message: `Exported function "${record.name}" must document thrown or rejected errors.`,
   });
 }
 
@@ -369,7 +390,7 @@ function checkPublicFunction(context, record, docs) {
 
 /** Reports whether private JSDoc is a one-line summary. */
 function hasConcisePrivateSummary(docs) {
-  const nonInternalTags = [...docs.tags.keys()].filter((tag) => tag !== 'internal');
+  const nonInternalTags = [...docs.tags.keys()].filter((tag) => tag !== "internal");
   return docs.descriptionLines.length === 1 && nonInternalTags.length === 0;
 }
 
@@ -378,7 +399,7 @@ function checkPrivateFunction(context, record, docs) {
   if (hasConcisePrivateSummary(docs)) return;
   context.report({
     node: record.docsNode,
-    message: `Private function "${record.name}" needs a concise one-line JSDoc summary.`
+    message: `Private function "${record.name}" needs a concise one-line JSDoc summary.`,
   });
 }
 
@@ -400,7 +421,7 @@ function complexConditionalOptions(context) {
   return {
     includeNullishCoalescing: options.includeNullishCoalescing ?? false,
     includeTernary: options.includeTernary ?? true,
-    maxLogicalOperators: configuredMaxLogicalOperators(options.maxLogicalOperators)
+    maxLogicalOperators: configuredMaxLogicalOperators(options.maxLogicalOperators),
   };
 }
 
@@ -413,21 +434,25 @@ function configuredMaxLogicalOperators(value) {
 
 /** Reports whether a logical operator should count as predicate complexity. */
 function shouldCountLogicalOperator(operator, options) {
-  if (operator === '&&' || operator === '||') return true;
-  return operator === '??' && options.includeNullishCoalescing;
+  if (operator === "&&" || operator === "||") return true;
+  return operator === "??" && options.includeNullishCoalescing;
 }
 
 /** Counts logical operators inside one predicate expression. */
 function countPredicateOperators(node, options) {
   if (!node || isFunctionNode(node)) return 0;
   const ownCount = predicateNodeCount(node, options);
-  return ownCount + childNodes(node).reduce((sum, child) => sum + countPredicateOperators(child, options), 0);
+  return (
+    ownCount +
+    childNodes(node).reduce((sum, child) => sum + countPredicateOperators(child, options), 0)
+  );
 }
 
 /** Counts the current predicate node when it is an operator of interest. */
 function predicateNodeCount(node, options) {
-  if (node.type === 'LogicalExpression' && shouldCountLogicalOperator(node.operator, options)) return 1;
-  if (node.type === 'ConditionalExpression' && options.includeTernary) return 1;
+  if (node.type === "LogicalExpression" && shouldCountLogicalOperator(node.operator, options))
+    return 1;
+  if (node.type === "ConditionalExpression" && options.includeTernary) return 1;
   return 0;
 }
 
@@ -450,7 +475,7 @@ export const testInternals = {
   containsNode,
   countPredicateOperators,
   loadBaseline,
-  resetBaselineCache
+  resetBaselineCache,
 };
 
 /** Reports a predicate when it exceeds the configured operator threshold. */
@@ -461,24 +486,24 @@ function checkPredicate(context, node) {
   if (count <= options.maxLogicalOperators) return;
   context.report({
     node,
-    message: `Conditional has ${count} logical operators; extract a named predicate or split into guard clauses.`
+    message: `Conditional has ${count} logical operators; extract a named predicate or split into guard clauses.`,
   });
 }
 
 const complexConditionalRule = {
   meta: {
-    type: 'suggestion',
+    type: "suggestion",
     schema: [
       {
-        type: 'object',
+        type: "object",
         additionalProperties: false,
         properties: {
-          includeNullishCoalescing: {type: 'boolean'},
-          includeTernary: {type: 'boolean'},
-          maxLogicalOperators: {type: 'number'}
-        }
-      }
-    ]
+          includeNullishCoalescing: { type: "boolean" },
+          includeTernary: { type: "boolean" },
+          maxLogicalOperators: { type: "number" },
+        },
+      },
+    ],
   },
   create(context) {
     return {
@@ -498,25 +523,28 @@ const complexConditionalRule = {
       },
       WhileStatement(node) {
         checkPredicate(context, node.test);
-      }
+      },
     };
-  }
+  },
 };
 
 const requireModuleJsDocRule = {
-  meta: {type: 'suggestion', schema: []},
+  meta: { type: "suggestion", schema: [] },
   create(context) {
     return {
       Program(node) {
         if (MODULE_JSDOC_PATTERN.test(context.sourceCode.text)) return;
-        context.report({node, message: 'JS/TS files must start with a module-level JSDoc block containing @file.'});
-      }
+        context.report({
+          node,
+          message: "JS/TS files must start with a module-level JSDoc block containing @file.",
+        });
+      },
     };
-  }
+  },
 };
 
 const requirePublicJsDocRule = {
-  meta: {type: 'suggestion', schema: []},
+  meta: { type: "suggestion", schema: [] },
   create(context) {
     const baseline = loadBaseline();
     let exportedNames = new Set();
@@ -530,20 +558,21 @@ const requirePublicJsDocRule = {
         checkFunctionRecord(context, record, baseline);
       },
       ExportDefaultDeclaration(node) {
-        if (!isFunctionNode(node.declaration) || node.declaration.type === 'FunctionDeclaration') return;
+        if (!isFunctionNode(node.declaration) || node.declaration.type === "FunctionDeclaration")
+          return;
         checkFunctionRecord(context, defaultFunctionExpressionRecord(node.declaration), baseline);
       },
       VariableDeclarator(node) {
         if (!isFunctionNode(node.init)) return;
         const record = variableFunctionRecord(node, exportedNames);
         if (record.isPublic) checkFunctionRecord(context, record, baseline);
-      }
+      },
     };
-  }
+  },
 };
 
 const requirePrivateJsDocRule = {
-  meta: {type: 'suggestion', schema: []},
+  meta: { type: "suggestion", schema: [] },
   create(context) {
     const baseline = loadBaseline();
     let exportedNames = new Set();
@@ -561,19 +590,19 @@ const requirePrivateJsDocRule = {
         if (!isFunctionNode(node.init) || !isTopLevelFunctionVariable(node)) return;
         const record = variableFunctionRecord(node, exportedNames);
         if (!record.isPublic) checkFunctionRecord(context, record, baseline);
-      }
+      },
     };
-  }
+  },
 };
 
 export default {
   meta: {
-    name: 'df12'
+    name: "df12",
   },
   rules: {
-    'complex-conditional': complexConditionalRule,
-    'require-module-jsdoc': requireModuleJsDocRule,
-    'require-private-jsdoc': requirePrivateJsDocRule,
-    'require-public-jsdoc': requirePublicJsDocRule
-  }
+    "complex-conditional": complexConditionalRule,
+    "require-module-jsdoc": requireModuleJsDocRule,
+    "require-private-jsdoc": requirePrivateJsDocRule,
+    "require-public-jsdoc": requirePublicJsDocRule,
+  },
 };
