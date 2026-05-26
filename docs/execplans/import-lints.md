@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: DRAFT
+Status: IN PROGRESS
 
 ## Purpose / big picture
 
@@ -157,9 +157,40 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Ran `coderabbit review --agent` against the plan-only change.
   The first review raised three minor grammar findings; all were fixed. The
   second review reported zero findings.
-- [ ] Commit the accepted plan-only change after rerunning gates for this
-  progress update.
-- [ ] Wait for explicit user approval before implementation.
+- [x] 2026-05-26: Committed the accepted plan-only change as
+  `3da0b8c Plan df12 lint import`.
+- [x] 2026-05-26: Received explicit user approval to proceed with
+  implementation.
+- [x] 2026-05-26: Started Milestone 1 and changed plan status to
+  `IN PROGRESS`.
+- [x] 2026-05-26: Imported upstream
+  `tools/oxlint-plugin-df12/index.js`, added `.oxlintrc.json`, updated
+  `package.json` scripts and exports, changed the Makefile wrappers to call
+  package scripts, replaced the placeholder package export with
+  `oxlintPluginSpecifier`, and made existing test/setup files satisfy the
+  imported JSDoc rules.
+- [x] 2026-05-26: Ran `bun install`; it added `fast-check@4.8.0` and
+  `oxlint@1.67.0` to `bun.lock`.
+- [x] 2026-05-26: Ran Milestone 1 deterministic gates before this progress
+  update. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
+  passed.
+- [ ] Rerun Milestone 1 deterministic gates after this progress update.
+- [x] 2026-05-26: Ran `coderabbit review --agent` for Milestone 1. It raised
+  two applicable plugin concerns: `testInternals` needed explicit public
+  documentation, and `maxLogicalOperators` needed validation before use.
+- [x] 2026-05-26: Patched `tools/oxlint-plugin-df12/index.js` to document
+  `testInternals` and to fall back to `maxLogicalOperators: 1` unless the
+  configured value is an integer greater than zero.
+- [x] 2026-05-26: The first gate rerun after that patch found that the helper's
+  combined predicate violated `df12/complex-conditional`; refactored it into
+  guard clauses.
+- [x] 2026-05-26: Reran Milestone 1 deterministic gates after CodeRabbit
+  fixes. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
+  passed.
+- [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 1 after
+  fixes; it reported zero findings.
+- [x] 2026-05-26: Milestone 1 passed deterministic gates and CodeRabbit review;
+  commit is ready.
 
 ## Surprises & Discoveries
 
@@ -172,6 +203,17 @@ The current Makefile partly satisfies the requested shape but needs tightening.
 `make lint`, `make typecheck`, and `make test` delegate to package scripts;
 `make check-fmt` currently calls `bunx biome check` directly and should be
 wrapped through a package script for consistency.
+
+Milestone 1 confirmed that the current `biome.jsonc` `files.includes` list
+limits Biome to `src`, `tests`, and selected root config files even when package
+scripts pass `.`. The imported Oxlint plugin remains in upstream formatting
+style until the stricter Biome milestone decides whether tools are included in
+Biome formatting.
+
+The first Milestone 1 CodeRabbit review found two real issues in the upstream
+plugin import: `maxLogicalOperators` accepted invalid configured values, and the
+exported `testInternals` object lacked public documentation. Both fixes are
+local improvements over the pinned upstream source.
 
 Upstream `simulacat-core` runs Biome and Oxlint separately: `lint` depends on
 `biomejs` and `oxlint`, `biomejs` runs `bun run lint`, and `oxlint` runs
@@ -213,6 +255,16 @@ compare with upstream.
 Makefile targets as wrappers. This directly implements the user's requirement
 and matches the current pattern in this repository, where most Makefile targets
 already delegate to Bun scripts.
+
+2026-05-26: Expose the plugin through the package export
+`df12-lints/oxlint-plugin` and expose that stable specifier from
+`src/index.ts`. This avoids making consumers depend on an accidental internal
+file path while still allowing Oxlint to load the JavaScript plugin file.
+
+2026-05-26: Diverged from the exact upstream plugin source to validate
+`maxLogicalOperators` and document `testInternals`. The changes preserve the
+rule contract while addressing correctness and maintainability findings from
+CodeRabbit.
 
 ## Implementation Plan
 

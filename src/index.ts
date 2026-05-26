@@ -1,7 +1,3 @@
-/**
- * Example function demonstrating the template setup.
- * Replace this with your project's actual code.
- */
-export const greet = (name: string): string => {
-  return `Hello, ${name}!`;
-};
+/** @file Public package metadata for df12 lint tooling. */
+
+export const oxlintPluginSpecifier = "df12-lints/oxlint-plugin";
