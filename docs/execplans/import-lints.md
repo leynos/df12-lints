@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: IN PROGRESS
+Status: COMPLETE
 
 ## Purpose / big picture
 
@@ -286,6 +286,17 @@ substantially expand scope beyond the import.
   final grammar fix; it reported zero findings.
 - [x] 2026-05-26: Milestone 4 passed deterministic gates, Markdown lint, and
   CodeRabbit review; commit is ready.
+- [x] 2026-05-26: Committed Milestone 4 as
+  `a2ac94b Document df12 lint package usage`.
+- [x] 2026-05-26: Ran the final integration search for placeholder or temporary
+  source references. The only `simulacat` and `/tmp/simulacat` references are
+  provenance and review notes inside this ExecPlan.
+- [x] 2026-05-26: Ran final integration gates. `make check-fmt`,
+  `make typecheck`, `make lint`, `make test`, and `make markdownlint` all
+  passed.
+- [x] 2026-05-26: Ran final `coderabbit review --agent`; it reported zero
+  findings.
+- [x] 2026-05-26: Marked this ExecPlan complete.
 
 ## Surprises & Discoveries
 
@@ -341,6 +352,10 @@ example, denied example, and fix guidance.
 The second Milestone 4 CodeRabbit review was limited to prose polish. The usage
 guide now uses compact Makefile-to-package-script mappings and Oxford `-ize`
 spelling in the private-helper example.
+
+The final integration search found no placeholder scaffold names such as
+`greet`, no template setup text, and no temporary upstream checkout references
+outside this ExecPlan's provenance notes.
 
 Upstream `simulacat-core` runs Biome and Oxlint separately: `lint` depends on
 `biomejs` and `oxlint`, `biomejs` runs `bun run lint`, and `oxlint` runs
@@ -706,5 +721,37 @@ CodeRabbit review again before committing or moving to the next milestone.
 
 ## Outcomes & Retrospective
 
-No implementation outcome yet. This plan is in draft state and awaits explicit
-approval before the import begins.
+The custom df12 Oxlint rules from `simulacat-core` were imported into
+`tools/oxlint-plugin-df12/index.js`, exposed as `df12-lints/oxlint-plugin`,
+and wired into `.oxlintrc.json`.
+
+`package.json` owns the JavaScript and TypeScript gate commands. The Makefile
+wraps those package scripts for `check-fmt`, `typecheck`, `lint`, `test`, and
+`markdownlint`, matching the requested df12 project workflow.
+
+The package now has behavioural coverage for the Oxlint plugin in
+`tests/oxlint-plugin.test.js`, including complex conditional diagnostics,
+property-based predicate counting, JSDoc rule behaviours, baseline handling, and
+the local invalid-`maxLogicalOperators` regression. The snapshot is stable
+because fixture paths are normalised to `<workspace>`.
+
+Biome now enforces the stricter complexity contract over source, tests, root
+configuration files, `.oxlintrc.json`, and `tools/**/*`. No Biome suppressions
+were needed.
+
+Consumer documentation now lives in `README.md` and `docs/usage.md`. It covers
+local gates, downstream Oxlint configuration, each `df12/*` rule, suppression
+policy, and `.jsdoc-baseline.json` policy.
+
+Final validation passed:
+
+```bash
+make check-fmt
+make typecheck
+make lint
+make test
+make markdownlint
+coderabbit review --agent
+```
+
+The final CodeRabbit review reported zero findings.
