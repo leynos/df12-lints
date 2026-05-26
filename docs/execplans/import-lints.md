@@ -191,6 +191,43 @@ substantially expand scope beyond the import.
   fixes; it reported zero findings.
 - [x] 2026-05-26: Milestone 1 passed deterministic gates and CodeRabbit review;
   commit is ready.
+- [x] 2026-05-26: Committed Milestone 1 as
+  `2eb50b6 Import df12 Oxlint plugin`.
+- [x] 2026-05-26: Started Milestone 2 and imported upstream
+  `tests/oxlint-plugin.test.js` plus its snapshot into this repository.
+- [x] 2026-05-26: Added a local regression test proving invalid
+  `maxLogicalOperators` values fall back to the default threshold.
+- [x] 2026-05-26: Ran Milestone 2 deterministic gates before this progress
+  update. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
+  passed; `make test` ran 17 tests across 2 files with 1 snapshot.
+- [ ] Rerun Milestone 2 deterministic gates after this progress update.
+- [x] 2026-05-26: Ran `coderabbit review --agent` for Milestone 2. It raised
+  two applicable cleanup findings: temporary fixture prefixes still used the
+  upstream `simulacat` name, and `runFixture` JSDoc duplicated destructured
+  parameter documentation.
+- [x] 2026-05-26: Patched `tests/oxlint-plugin.test.js` to use the
+  `df12-lints-` temporary directory prefix everywhere and removed the duplicate
+  `runFixture` JSDoc parameter entries.
+- [x] 2026-05-26: The gate rerun after that patch showed
+  `df12/require-public-jsdoc` treats exported destructured parameters as the
+  individual bound names. Changed `runFixture` to accept `options` and
+  destructure inside the function body so the non-duplicated JSDoc matches the
+  lint rule.
+- [x] 2026-05-26: Reran Milestone 2 deterministic gates after CodeRabbit
+  fixes. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
+  passed.
+- [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 2. It raised
+  one remaining valid test-isolation finding: the invalid-baseline test needed
+  to clear `testInternals` baseline cache in its `finally` block.
+- [x] 2026-05-26: Added `testInternals.resetBaselineCache()` to the
+  invalid-baseline test cleanup path.
+- [x] 2026-05-26: Reran Milestone 2 deterministic gates after the
+  test-isolation fix. `make check-fmt`, `make typecheck`, `make lint`, and
+  `make test` all passed.
+- [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 2 after the
+  test-isolation fix; it reported zero findings.
+- [x] 2026-05-26: Milestone 2 passed deterministic gates and CodeRabbit review;
+  commit is ready.
 
 ## Surprises & Discoveries
 
@@ -214,6 +251,21 @@ The first Milestone 1 CodeRabbit review found two real issues in the upstream
 plugin import: `maxLogicalOperators` accepted invalid configured values, and the
 exported `testInternals` object lacked public documentation. Both fixes are
 local improvements over the pinned upstream source.
+
+Milestone 2 kept the upstream snapshot approach because the diagnostic output
+was already normalised to `<workspace>` and passed unchanged after porting. The
+test suite now covers the upstream behaviours plus the local option-validation
+regression introduced during Milestone 1.
+
+The first Milestone 2 CodeRabbit review found two pieces of source-repository
+residue in the ported tests: the temporary directory prefix still used the
+`simulacat` project name, and `runFixture` documented destructured parameters
+twice. Both were valid porting cleanup issues.
+
+The second Milestone 2 CodeRabbit review found that the invalid-baseline test
+left the plugin's process-local baseline cache mutated after completion. The
+test now clears the cache in `finally`, after restoring the working directory
+and removing the temporary workspace.
 
 Upstream `simulacat-core` runs Biome and Oxlint separately: `lint` depends on
 `biomejs` and `oxlint`, `biomejs` runs `bun run lint`, and `oxlint` runs
