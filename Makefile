@@ -29,7 +29,7 @@ test: build ## Run tests
 	bun run test
 
 markdownlint: ## Lint Markdown files
-	bunx markdownlint-cli2 '**/*.md'
+	bun run lint:markdown
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \

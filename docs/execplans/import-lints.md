@@ -246,6 +246,46 @@ substantially expand scope beyond the import.
   zero findings.
 - [x] 2026-05-26: Milestone 3 passed deterministic gates and CodeRabbit review;
   commit is ready.
+- [x] 2026-05-26: Committed Milestone 3 as
+  `70fda6e Tighten Biome lint settings`.
+- [x] 2026-05-26: Started Milestone 4 and added `README.md` plus
+  `docs/usage.md` covering Makefile gates, package scripts, downstream Oxlint
+  configuration, rule behaviour, suppression policy, and JSDoc baseline policy.
+- [x] 2026-05-26: Added `lint:markdown` to `package.json`, changed the
+  Makefile `markdownlint` target to delegate to `bun run lint:markdown`, and
+  added `markdownlint-cli2@0.22.1` to the lockfile with `bun install`.
+- [x] 2026-05-26: Ran Milestone 4 deterministic gates before this progress
+  update. `make check-fmt`, `make typecheck`, `make lint`, `make test`, and
+  `make markdownlint` all passed.
+- [ ] Rerun Milestone 4 deterministic gates after this progress update.
+- [x] 2026-05-26: Ran `coderabbit review --agent` for Milestone 4. It raised
+  two applicable documentation findings: README wording had redundant phrasing,
+  and `docs/usage.md` needed a structured rule-reference format.
+- [x] 2026-05-26: Removed the redundant README phrasing and reworked every
+  `df12/*` rule in `docs/usage.md` with Purpose, Scope and behaviour,
+  Configuration, What is allowed, What is denied, and How to fix sections.
+- [x] 2026-05-26: Reran Milestone 4 deterministic gates after CodeRabbit
+  fixes. `make check-fmt`, `make typecheck`, `make lint`, `make test`, and
+  `make markdownlint` all passed.
+- [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 4. It raised
+  two remaining documentation polish findings: use `-ize` spelling in a sample
+  comment and reduce repetition in the Makefile-to-package-script bullet list.
+- [x] 2026-05-26: Updated the usage guide to use concise command mappings and
+  changed the sample helper spelling to `normalizeRuleName`.
+- [x] 2026-05-26: Reran Milestone 4 deterministic gates after the second
+  documentation review fixes. `make check-fmt`, `make typecheck`, `make lint`,
+  `make test`, and `make markdownlint` all passed.
+- [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 4. It raised
+  one remaining grammar finding in `docs/usage.md`: use "add a complete JSDoc"
+  rather than "add complete JSDoc".
+- [x] 2026-05-26: Patched the final grammar finding in `docs/usage.md`.
+- [x] 2026-05-26: Reran Milestone 4 deterministic gates after the final grammar
+  fix. `make check-fmt`, `make typecheck`, `make lint`, `make test`, and
+  `make markdownlint` all passed.
+- [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 4 after the
+  final grammar fix; it reported zero findings.
+- [x] 2026-05-26: Milestone 4 passed deterministic gates, Markdown lint, and
+  CodeRabbit review; commit is ready.
 
 ## Surprises & Discoveries
 
@@ -288,6 +328,19 @@ and removing the temporary workspace.
 Milestone 3 showed that the imported plugin and ported tests already comply
 with the stricter Biome complexity limits after `.oxlintrc.json` and
 `tools/**/*` were added to `files.includes`. No Biome suppressions were needed.
+
+Milestone 4 confirmed that the existing `.markdownlint-cli2.jsonc` can lint the
+new README, usage guide, and ExecPlan without additional ignores or rule
+changes.
+
+The first Milestone 4 CodeRabbit review required the rule reference to be more
+structured than the initial prose paragraphs. The usage guide now gives each
+rule the same operational shape: purpose, scope, configuration, allowed
+example, denied example, and fix guidance.
+
+The second Milestone 4 CodeRabbit review was limited to prose polish. The usage
+guide now uses compact Makefile-to-package-script mappings and Oxford `-ize`
+spelling in the private-helper example.
 
 Upstream `simulacat-core` runs Biome and Oxlint separately: `lint` depends on
 `biomejs` and `oxlint`, `biomejs` runs `bun run lint`, and `oxlint` runs
