@@ -297,6 +297,14 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Ran final `coderabbit review --agent`; it reported zero
   findings.
 - [x] 2026-05-26: Marked this ExecPlan complete.
+- [x] 2026-06-02: Verified follow-up review findings against the current branch.
+  The ExecPlan spelling, Makefile `markdownlint` prerequisite, package lint
+  script coverage, Oxlint fixture timeout, and baseline-cache isolation findings
+  were all still valid and were fixed.
+- [x] 2026-06-02: Verified the broader failed-check report. Added the prescribed
+  user and developer guide entrypoints, documented why Rust `trybuild` is not
+  applicable, added workflow-contract tests, and refactored JSDoc baseline state
+  so rules receive directory-keyed baseline state during `create(context)`.
 
 ## Surprises & Discoveries
 
@@ -322,7 +330,7 @@ exported `testInternals` object lacked public documentation. Both fixes are
 local improvements over the pinned upstream source.
 
 Milestone 2 kept the upstream snapshot approach because the diagnostic output
-was already normalised to `<workspace>` and passed unchanged after porting. The
+was already normalized to `<workspace>` and passed unchanged after porting. The
 test suite now covers the upstream behaviours plus the local option-validation
 regression introduced during Milestone 1.
 
@@ -552,7 +560,7 @@ Keep behavioural coverage for:
 - Default exports, re-exports, missing `@param`, missing `@returns`, and
   baseline handling.
 
-If snapshots are retained, generate stable snapshots with paths normalised to
+If snapshots are retained, generate stable snapshots with paths normalized to
 `<workspace>`. If snapshots add more friction than value for this package, use
 explicit diagnostic assertions that still prove the same behaviour.
 
@@ -733,7 +741,7 @@ The package now has behavioural coverage for the Oxlint plugin in
 `tests/oxlint-plugin.test.js`, including complex conditional diagnostics,
 property-based predicate counting, JSDoc rule behaviours, baseline handling, and
 the local invalid-`maxLogicalOperators` regression. The snapshot is stable
-because fixture paths are normalised to `<workspace>`.
+because fixture paths are normalized to `<workspace>`.
 
 Biome now enforces the stricter complexity contract over source, tests, root
 configuration files, `.oxlintrc.json`, and `tools/**/*`. No Biome suppressions

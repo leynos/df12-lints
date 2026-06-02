@@ -21,42 +21,48 @@ const TEST_STATEMENT_NODE_TYPES = new Set([
   "IfStatement",
   "WhileStatement",
 ]);
-let baselineCache = null;
+const baselineCache = new Map();
 
 /** Loads baseline entries from the repository root. */
-function loadBaseline() {
-  if (baselineCache) return baselineCache;
+function loadBaseline(baselineDir = process.cwd()) {
+  if (baselineCache.has(baselineDir)) return baselineCache.get(baselineDir);
 
-  const baselinePath = path.join(process.cwd(), ".jsdoc-baseline.json");
+  const baselinePath = path.join(baselineDir, ".jsdoc-baseline.json");
+  let entries = new Set();
   if (!existsSync(baselinePath)) {
-    baselineCache = new Set();
-    return baselineCache;
+    baselineCache.set(baselineDir, entries);
+    return entries;
   }
 
   try {
     const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
-    baselineCache = new Set(parsed.entries ?? []);
-    return baselineCache;
+    entries = new Set(parsed.entries ?? []);
   } catch {
-    baselineCache = new Set();
-    return baselineCache;
+    entries = new Set();
   }
+  baselineCache.set(baselineDir, entries);
+  return entries;
 }
 
 /** Clears cached baseline state for deterministic unit tests. */
 function resetBaselineCache() {
-  baselineCache = null;
+  baselineCache.clear();
+}
+
+/** Returns the working directory used for repository-relative rule state. */
+function workingDirectory(context) {
+  return context.cwd ?? context.getCwd?.() ?? process.cwd();
 }
 
 /** Returns a repository-relative path for a linted file. */
-function relativeFilename(context) {
+function relativeFilename(context, directory = workingDirectory(context)) {
   const filename = context.filename ?? context.getFilename?.() ?? "";
-  return path.relative(process.cwd(), filename).replaceAll(path.sep, "/");
+  return path.relative(directory, filename).replaceAll(path.sep, "/");
 }
 
 /** Builds the documentation baseline key for a function record. */
-function baselineKey(context, record) {
-  return `${relativeFilename(context)}#${record.name}`;
+function baselineKey(context, record, directory = workingDirectory(context)) {
+  return `${relativeFilename(context, directory)}#${record.name}`;
 }
 
 /** Reports whether an AST node is a function-like node. */
@@ -311,8 +317,8 @@ function isAstNode(value) {
 }
 
 /** Reports whether a function record is skipped by the baseline. */
-function isBaselined(context, record, baseline) {
-  return baseline.has(baselineKey(context, record));
+function isBaselined(context, record, baseline, directory = workingDirectory(context)) {
+  return baseline.has(baselineKey(context, record, directory));
 }
 
 /** Reports a missing JSDoc block for a covered function. */
@@ -404,8 +410,8 @@ function checkPrivateFunction(context, record, docs) {
 }
 
 /** Checks a single covered function record. */
-function checkFunctionRecord(context, record, baseline) {
-  if (!record.name || isBaselined(context, record, baseline)) return;
+function checkFunctionRecord(context, record, state) {
+  if (!record.name || isBaselined(context, record, state.baseline, state.workingDirectory)) return;
   const docs = parseLeadingJsDoc(context, record.docsNode);
   if (!docs) {
     reportMissingJsDoc(context, record);
@@ -413,6 +419,15 @@ function checkFunctionRecord(context, record, baseline) {
   }
   if (record.isPublic) checkPublicFunction(context, record, docs);
   else checkPrivateFunction(context, record, docs);
+}
+
+/** Creates per-rule JSDoc state from the lint context. */
+function jsDocRuleState(context) {
+  const directory = workingDirectory(context);
+  return {
+    baseline: loadBaseline(directory),
+    workingDirectory: directory,
+  };
 }
 
 /** Returns configured complex conditional rule options. */
@@ -546,7 +561,7 @@ const requireModuleJsDocRule = {
 const requirePublicJsDocRule = {
   meta: { type: "suggestion", schema: [] },
   create(context) {
-    const baseline = loadBaseline();
+    const state = jsDocRuleState(context);
     let exportedNames = new Set();
     return {
       Program(node) {
@@ -555,17 +570,17 @@ const requirePublicJsDocRule = {
       FunctionDeclaration(node) {
         const record = functionRecord(node, exportedNames);
         if (!record.isPublic) return;
-        checkFunctionRecord(context, record, baseline);
+        checkFunctionRecord(context, record, state);
       },
       ExportDefaultDeclaration(node) {
         if (!isFunctionNode(node.declaration) || node.declaration.type === "FunctionDeclaration")
           return;
-        checkFunctionRecord(context, defaultFunctionExpressionRecord(node.declaration), baseline);
+        checkFunctionRecord(context, defaultFunctionExpressionRecord(node.declaration), state);
       },
       VariableDeclarator(node) {
         if (!isFunctionNode(node.init)) return;
         const record = variableFunctionRecord(node, exportedNames);
-        if (record.isPublic) checkFunctionRecord(context, record, baseline);
+        if (record.isPublic) checkFunctionRecord(context, record, state);
       },
     };
   },
@@ -574,7 +589,7 @@ const requirePublicJsDocRule = {
 const requirePrivateJsDocRule = {
   meta: { type: "suggestion", schema: [] },
   create(context) {
-    const baseline = loadBaseline();
+    const state = jsDocRuleState(context);
     let exportedNames = new Set();
     return {
       Program(node) {
@@ -584,12 +599,12 @@ const requirePrivateJsDocRule = {
         if (!isTopLevelStatement(node)) return;
         const record = functionRecord(node, exportedNames);
         if (record.isPublic) return;
-        checkFunctionRecord(context, record, baseline);
+        checkFunctionRecord(context, record, state);
       },
       VariableDeclarator(node) {
         if (!isFunctionNode(node.init) || !isTopLevelFunctionVariable(node)) return;
         const record = variableFunctionRecord(node, exportedNames);
-        if (!record.isPublic) checkFunctionRecord(context, record, baseline);
+        if (!record.isPublic) checkFunctionRecord(context, record, state);
       },
     };
   },

@@ -69,10 +69,13 @@ function writeSource({ directory, name, source }) {
 
 /** Runs Oxlint against a fixture workspace. */
 function runOxlint({ configPath, cwd = PROJECT_ROOT, filePath }) {
-  return spawnSync("bunx", ["oxlint", "-c", configPath, "--format", "unix", filePath], {
+  const result = spawnSync("bunx", ["oxlint", "-c", configPath, "--format", "unix", filePath], {
     cwd,
     encoding: "utf8",
+    timeout: 30_000,
   });
+  if (result.error) throw result.error;
+  return result;
 }
 
 /** Counts diagnostics for one rule id. */
@@ -95,7 +98,7 @@ function normalizeDiagnostics(output, directory) {
  * @param options.name - Fixture filename (e.g. `'foo.ts'`).
  * @param options.source - TypeScript source text to lint.
  * @param options.cwd - Working directory for the Oxlint process.
- * @returns The normalised Oxlint process result.
+ * @returns The normalized Oxlint process result.
  */
 export function runFixture(options) {
   const { rules, name, source, cwd } = options;
@@ -633,21 +636,18 @@ describe("df12 JSDoc baseline", () => {
   it("caches an empty baseline when the baseline JSON is invalid", () => {
     testInternals.resetBaselineCache();
     const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
-    const previousCwd = process.cwd();
     try {
       const baselinePath = path.join(directory, ".jsdoc-baseline.json");
       writeFileSync(baselinePath, "{", "utf8");
-      process.chdir(directory);
 
-      const invalidBaseline = testInternals.loadBaseline();
+      const invalidBaseline = testInternals.loadBaseline(directory);
       writeFileSync(baselinePath, JSON.stringify({ entries: ["later.ts#value"] }), "utf8");
-      const cachedBaseline = testInternals.loadBaseline();
+      const cachedBaseline = testInternals.loadBaseline(directory);
 
       expect(invalidBaseline.size).toBe(0);
       expect(cachedBaseline.size).toBe(0);
       expect(cachedBaseline).toBe(invalidBaseline);
     } finally {
-      process.chdir(previousCwd);
       rmSync(directory, { force: true, recursive: true });
       testInternals.resetBaselineCache();
     }

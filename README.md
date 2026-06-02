@@ -32,5 +32,5 @@ make test
 ```
 
 Those targets delegate to `package.json` scripts. See
-[docs/usage.md](docs/usage.md) for the full rule contract and maintenance
+[docs/users-guide.md](docs/users-guide.md) for the full rule contract and maintenance
 policy.

@@ -28,7 +28,7 @@ typecheck: build ## Run type checking
 test: build ## Run tests
 	bun run test
 
-markdownlint: ## Lint Markdown files
+markdownlint: build ## Lint Markdown files
 	bun run lint:markdown
 
 help: ## Show available targets

@@ -15,7 +15,7 @@
     "build": "tsc",
     "fmt": "bunx biome format --write .",
     "check:fmt": "bunx biome check --formatter-enabled=true --linter-enabled=false .",
-    "lint": "bun run lint:biome && bun run lint:oxlint",
+    "lint": "bun run lint:biome && bun run lint:oxlint && bun run lint:markdown",
     "lint:biome": "bunx biome lint .",
     "lint:markdown": "markdownlint-cli2 \"**/*.md\"",
     "lint:oxlint": "bunx oxlint .",
