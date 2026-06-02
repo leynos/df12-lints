@@ -28,20 +28,20 @@ function loadBaseline(baselineDir = process.cwd()) {
   if (baselineCache.has(baselineDir)) return baselineCache.get(baselineDir);
 
   const baselinePath = path.join(baselineDir, ".jsdoc-baseline.json");
-  let entries = new Set();
+  let result = { baseline: new Set(), ok: true };
   if (!existsSync(baselinePath)) {
-    baselineCache.set(baselineDir, entries);
-    return entries;
+    baselineCache.set(baselineDir, result);
+    return result;
   }
 
   try {
     const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
-    entries = new Set(parsed.entries ?? []);
-  } catch {
-    entries = new Set();
+    result = { baseline: new Set(parsed.entries ?? []), ok: true };
+  } catch (error) {
+    result = { baseline: new Set(), error, ok: false };
   }
-  baselineCache.set(baselineDir, entries);
-  return entries;
+  baselineCache.set(baselineDir, result);
+  return result;
 }
 
 /** Clears cached baseline state for deterministic unit tests. */
@@ -424,8 +424,10 @@ function checkFunctionRecord(context, record, state) {
 /** Creates per-rule JSDoc state from the lint context. */
 function jsDocRuleState(context) {
   const directory = workingDirectory(context);
+  const baselineResult = loadBaseline(directory);
   return {
-    baseline: loadBaseline(directory),
+    baseline: baselineResult.baseline,
+    baselineError: baselineResult.error,
     workingDirectory: directory,
   };
 }
@@ -482,7 +484,7 @@ function isDirectStatementTest(node) {
  * @property collectExportedNames Collects names exported by a program.
  * @property containsNode Searches AST descendants while skipping nested functions.
  * @property countPredicateOperators Counts predicate operators for complex conditional checks.
- * @property loadBaseline Loads the current JSDoc baseline.
+ * @property loadBaseline Loads the current JSDoc baseline result.
  * @property resetBaselineCache Clears cached baseline state.
  */
 export const testInternals = {

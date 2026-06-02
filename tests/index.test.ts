@@ -1,4 +1,10 @@
-/** @file Tests for the public df12-lints package surface. */
+/**
+ * @file Tests for the public df12-lints package surface.
+ *
+ * These tests pin the relationship between the TypeScript package entrypoint,
+ * `package.json` scripts, and Makefile wrappers so the documented command
+ * surface continues to drive formatting, linting, typechecking, and tests.
+ */
 
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";

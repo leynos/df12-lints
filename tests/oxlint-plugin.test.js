@@ -1,4 +1,10 @@
-/** @file Behavioural tests for the local df12 Oxlint plugin. */
+/**
+ * @file Behavioural tests for the local df12 Oxlint plugin.
+ *
+ * This suite exercises the plugin through temporary Oxlint workspaces and
+ * focused helper tests. It connects the package-level plugin export to the rule
+ * implementations, snapshots diagnostics, and verifies baseline cache behaviour.
+ */
 
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
@@ -602,6 +608,7 @@ describe("df12 JSDoc negative cases", () => {
 
 describe("df12 JSDoc baseline", () => {
   it("uses the current baseline file for each lint process", () => {
+    testInternals.resetBaselineCache();
     const workspace = createWorkspace();
     try {
       const configPath = writeConfig({
@@ -630,10 +637,13 @@ describe("df12 JSDoc baseline", () => {
       expect(reportedResult.stdout).toContain("df12(require-public-jsdoc)");
     } finally {
       workspace.cleanup();
+      testInternals.resetBaselineCache();
     }
   });
 
   it("caches an empty baseline when the baseline JSON is invalid", () => {
+    // Baseline cache assertions reset around each fixture so tests never rely
+    // on state left behind by another workspace.
     testInternals.resetBaselineCache();
     const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
     try {
@@ -644,8 +654,10 @@ describe("df12 JSDoc baseline", () => {
       writeFileSync(baselinePath, JSON.stringify({ entries: ["later.ts#value"] }), "utf8");
       const cachedBaseline = testInternals.loadBaseline(directory);
 
-      expect(invalidBaseline.size).toBe(0);
-      expect(cachedBaseline.size).toBe(0);
+      expect(invalidBaseline.ok).toBe(false);
+      expect(invalidBaseline.error).toBeInstanceOf(SyntaxError);
+      expect(invalidBaseline.baseline.size).toBe(0);
+      expect(cachedBaseline.baseline.size).toBe(0);
       expect(cachedBaseline).toBe(invalidBaseline);
     } finally {
       rmSync(directory, { force: true, recursive: true });

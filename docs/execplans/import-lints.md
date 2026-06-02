@@ -305,6 +305,10 @@ substantially expand scope beyond the import.
   user and developer guide entrypoints, documented why Rust `trybuild` is not
   applicable, added workflow-contract tests, and refactored JSDoc baseline state
   so rules receive directory-keyed baseline state during `create(context)`.
+- [x] 2026-06-02: Verified the next failed-check report. The exact `test:all`
+  command-boundary assertion was already fixed, while module-level documentation,
+  explicit baseline parse-error reporting, and symmetric baseline cache resets
+  were still valid and were updated.
 
 ## Surprises & Discoveries
 
