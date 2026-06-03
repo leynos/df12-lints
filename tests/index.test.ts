@@ -45,7 +45,8 @@ describe("repository gate wiring", () => {
   });
 
   it("wraps Markdown linting with the dependency-installing Makefile target", () => {
-    expect(makefile).toContain("markdownlint: build ## Lint Markdown files");
-    expect(makefile).toContain("bun run lint:markdown");
+    expect(makefile).toMatch(
+      /^markdownlint: build ## Lint Markdown files\n\tbun run lint:markdown$/m,
+    );
   });
 });

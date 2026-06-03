@@ -427,7 +427,6 @@ function jsDocRuleState(context) {
   const baselineResult = loadBaseline(directory);
   return {
     baseline: baselineResult.baseline,
-    baselineError: baselineResult.error,
     workingDirectory: directory,
   };
 }
