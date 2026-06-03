@@ -17,7 +17,7 @@ fmt: build ## Format sources
 	bun run fmt
 
 check-fmt: build ## Verify formatting
-	bunx biome check --formatter-enabled=true --linter-enabled=false src tests
+	bun run check:fmt
 
 lint: build ## Run linters
 	bun run lint
@@ -26,10 +26,10 @@ typecheck: build ## Run type checking
 	bun run check:types
 
 test: build ## Run tests
-	bun test
+	bun run test
 
-markdownlint: ## Lint Markdown files
-	bunx markdownlint-cli2 '**/*.md'
+markdownlint: build ## Lint Markdown files
+	bun run lint:markdown
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \

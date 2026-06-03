@@ -2,17 +2,24 @@
   "$schema": "https://biomejs.dev/schemas/stable/schema.json",
   "files": {
     "includes": [
+      ".oxlintrc.json",
       "biome.jsonc",
       "bunfig.toml",
       "package.json",
       "tsconfig.json",
       "src/**/*",
-      "tests/**/*"
+      "tests/**/*",
+      "tools/**/*"
     ],
     "ignoreUnknown": true
   },
   "vcs": {
+    "enabled": true,
+    "clientKind": "git",
     "useIgnoreFile": true
+  },
+  "assist": {
+    "enabled": false
   },
   "formatter": {
     "enabled": true,
@@ -34,6 +41,28 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 8
+          }
+        },
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 70,
+            "skipBlankLines": false,
+            "skipIifes": false
+          }
+        },
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 4
+          }
+        }
+      },
       "suspicious": {
         "noConsole": "off"
       },
