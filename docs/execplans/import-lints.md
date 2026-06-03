@@ -309,6 +309,11 @@ substantially expand scope beyond the import.
   command-boundary assertion was already fixed, while module-level documentation,
   explicit baseline parse-error reporting, and symmetric baseline cache resets
   were still valid and were updated.
+- [x] 2026-06-03: Verified the architecture, observability, concurrency, and
+  behavioural coverage findings. Removed shared baseline caching, surfaced
+  invalid baseline files as lint diagnostics, documented invalid-baseline
+  behaviour, and added behavioural coverage for binding patterns, missing error
+  docs, and loop predicate statements.
 
 ## Surprises & Discoveries
 

@@ -4,7 +4,7 @@
  * The plugin uses Oxlint's ESLint-compatible JavaScript plugin API so the
  * project can enforce local rules without a separate linting process.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const MODULE_JSDOC_PATTERN =
@@ -21,33 +21,20 @@ const TEST_STATEMENT_NODE_TYPES = new Set([
   "IfStatement",
   "WhileStatement",
 ]);
-const baselineCache = new Map();
-
 /** Loads baseline entries from the repository root. */
 function loadBaseline(baselineDir = process.cwd()) {
-  if (baselineCache.has(baselineDir)) return baselineCache.get(baselineDir);
-
   const baselinePath = path.join(baselineDir, ".jsdoc-baseline.json");
-  let result = { baseline: new Set(), ok: true };
-  if (!existsSync(baselinePath)) {
-    baselineCache.set(baselineDir, result);
-    return result;
-  }
-
   try {
     const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
-    result = { baseline: new Set(parsed.entries ?? []), ok: true };
+    return { baseline: new Set(parsed.entries ?? []), ok: true };
   } catch (error) {
-    result = { baseline: new Set(), error, ok: false };
+    if (error?.code === "ENOENT") return { baseline: new Set(), ok: true };
+    return { baseline: new Set(), error, ok: false };
   }
-  baselineCache.set(baselineDir, result);
-  return result;
 }
 
-/** Clears cached baseline state for deterministic unit tests. */
-function resetBaselineCache() {
-  baselineCache.clear();
-}
+/** Keeps the test helper stable; baseline loading is intentionally uncached. */
+function resetBaselineCache() {}
 
 /** Returns the working directory used for repository-relative rule state. */
 function workingDirectory(context) {
@@ -421,12 +408,22 @@ function checkFunctionRecord(context, record, state) {
   else checkPrivateFunction(context, record, docs);
 }
 
+/** Reports a baseline configuration error once for the current linted file. */
+function reportBaselineError(context, node, state) {
+  if (!state.baselineError) return;
+  context.report({
+    node,
+    message: `Could not load .jsdoc-baseline.json: ${state.baselineError.message}`,
+  });
+}
+
 /** Creates per-rule JSDoc state from the lint context. */
 function jsDocRuleState(context) {
   const directory = workingDirectory(context);
   const baselineResult = loadBaseline(directory);
   return {
     baseline: baselineResult.baseline,
+    baselineError: baselineResult.error,
     workingDirectory: directory,
   };
 }
@@ -566,6 +563,7 @@ const requirePublicJsDocRule = {
     let exportedNames = new Set();
     return {
       Program(node) {
+        reportBaselineError(context, node, state);
         exportedNames = collectExportedNames(node);
       },
       FunctionDeclaration(node) {
@@ -594,6 +592,7 @@ const requirePrivateJsDocRule = {
     let exportedNames = new Set();
     return {
       Program(node) {
+        reportBaselineError(context, node, state);
         exportedNames = collectExportedNames(node);
       },
       FunctionDeclaration(node) {

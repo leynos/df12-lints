@@ -292,6 +292,23 @@ describe("df12/complex-conditional", () => {
     expect(result.status).toBe(1);
     expect(countRuleFindings(result.stdout, "df12(complex-conditional)")).toBe(1);
   });
+
+  it("checks while, do-while, and for statement predicates", () => {
+    const result = runFixture({
+      rules: {
+        "df12/complex-conditional": ["error", { maxLogicalOperators: 1 }],
+      },
+      name: "loop-predicates.ts",
+      source: `
+      while (a && b && c) {}
+      do {} while (d && e && f);
+      for (; g && h && i;) {}
+    `,
+    });
+
+    expect(result.status).toBe(1);
+    expect(countRuleFindings(result.stdout, "df12(complex-conditional)")).toBe(3);
+  });
 });
 
 describe("df12/complex-conditional diagnostics", () => {
@@ -513,6 +530,35 @@ describe("df12 JSDoc rules", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("");
   });
+
+  it("reports missing JSDoc params for binding patterns", () => {
+    const result = runFixture({
+      rules: JSDOC_RULES,
+      name: "binding-patterns.ts",
+      source: `
+          /** @file Binding pattern fixture. */
+
+          /**
+           * Reads destructured values.
+           *
+           * @returns A combined value.
+           */
+          export function patterns({ id, alias: renamed, ...rest }, [first, second], value = 1, ...items) {
+            return id + renamed + rest.extra + first + second + value + items.length;
+          }
+        `,
+    });
+
+    expect(result.status).toBe(1);
+    expect(countRuleFindings(result.stdout, "df12(require-public-jsdoc)")).toBe(7);
+    expect(result.stdout).toContain('parameter "id"');
+    expect(result.stdout).toContain('parameter "renamed"');
+    expect(result.stdout).toContain('parameter "rest"');
+    expect(result.stdout).toContain('parameter "first"');
+    expect(result.stdout).toContain('parameter "second"');
+    expect(result.stdout).toContain('parameter "value"');
+    expect(result.stdout).toContain('parameter "items"');
+  });
 });
 
 describe("df12 JSDoc default exports", () => {
@@ -604,6 +650,41 @@ describe("df12 JSDoc negative cases", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("");
   });
+
+  it("reports missing throws and rejects documentation", () => {
+    const result = runFixture({
+      rules: JSDOC_RULES,
+      name: "missing-error-docs.ts",
+      source: `
+          /** @file Missing error documentation fixture. */
+
+          /**
+           * Raises a fixture error.
+           */
+          export function throwsError() {
+            throw new Error('failure');
+          }
+
+          /**
+           * Rejects a fixture promise.
+           *
+           * @returns The rejected promise.
+           */
+          export function rejectsError() {
+            return Promise.reject(new Error('failure'));
+          }
+        `,
+    });
+
+    expect(result.status).toBe(1);
+    expect(countRuleFindings(result.stdout, "df12(require-public-jsdoc)")).toBe(2);
+    expect(result.stdout).toContain(
+      'function "throwsError" must document thrown or rejected errors',
+    );
+    expect(result.stdout).toContain(
+      'function "rejectsError" must document thrown or rejected errors',
+    );
+  });
 });
 
 describe("df12 JSDoc baseline", () => {
@@ -641,7 +722,7 @@ describe("df12 JSDoc baseline", () => {
     }
   });
 
-  it("caches an empty baseline when the baseline JSON is invalid", () => {
+  it("reports invalid baseline JSON and uses an empty baseline", () => {
     // Baseline cache assertions reset around each fixture so tests never rely
     // on state left behind by another workspace.
     testInternals.resetBaselineCache();
@@ -657,11 +738,43 @@ describe("df12 JSDoc baseline", () => {
       expect(invalidBaseline.ok).toBe(false);
       expect(invalidBaseline.error).toBeInstanceOf(SyntaxError);
       expect(invalidBaseline.baseline.size).toBe(0);
-      expect(cachedBaseline.baseline.size).toBe(0);
-      expect(cachedBaseline).toBe(invalidBaseline);
+      expect(cachedBaseline.ok).toBe(true);
+      expect(cachedBaseline.baseline.size).toBe(1);
     } finally {
       rmSync(directory, { force: true, recursive: true });
       testInternals.resetBaselineCache();
+    }
+  });
+
+  it("reports invalid baseline JSON through Oxlint diagnostics", () => {
+    const workspace = createWorkspace();
+    try {
+      const configPath = writeConfig({
+        directory: workspace.directory,
+        rules: {
+          "df12/require-public-jsdoc": "error",
+        },
+      });
+      const filePath = writeSource({
+        directory: workspace.directory,
+        name: "invalid-baseline.ts",
+        source: `
+          /** @file Invalid baseline fixture. */
+
+          export function undocumented(value) {
+            return value;
+          }
+        `,
+      });
+      writeFileSync(path.join(workspace.directory, ".jsdoc-baseline.json"), "{", "utf8");
+
+      const result = runOxlint({ configPath, cwd: workspace.directory, filePath });
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("Could not load .jsdoc-baseline.json");
+      expect(result.stdout).toContain("df12(require-public-jsdoc)");
+    } finally {
+      workspace.cleanup();
     }
   });
 });

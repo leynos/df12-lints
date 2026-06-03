@@ -266,3 +266,7 @@ working directory:
 Baseline entries should only isolate existing documentation debt. New code
 should satisfy the JSDoc rules directly, and baseline entries should be removed
 when functions are documented.
+
+If the baseline file exists but cannot be read or parsed, the JSDoc rules report
+a lint diagnostic and continue with an empty baseline. This keeps invalid
+configuration visible while still reporting the underlying documentation gaps.
