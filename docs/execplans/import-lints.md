@@ -249,7 +249,7 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Committed Milestone 3 as
   `70fda6e Tighten Biome lint settings`.
 - [x] 2026-05-26: Started Milestone 4 and added `README.md` plus
-  `docs/usage.md` covering Makefile gates, package scripts, downstream Oxlint
+  `docs/users-guide.md` covering Makefile gates, package scripts, downstream Oxlint
   configuration, rule behaviour, suppression policy, and JSDoc baseline policy.
 - [x] 2026-05-26: Added `lint:markdown` to `package.json`, changed the
   Makefile `markdownlint` target to delegate to `bun run lint:markdown`, and
@@ -260,9 +260,9 @@ substantially expand scope beyond the import.
 - [ ] Rerun Milestone 4 deterministic gates after this progress update.
 - [x] 2026-05-26: Ran `coderabbit review --agent` for Milestone 4. It raised
   two applicable documentation findings: README wording had redundant phrasing,
-  and `docs/usage.md` needed a structured rule-reference format.
+  and `docs/users-guide.md` needed a structured rule-reference format.
 - [x] 2026-05-26: Removed the redundant README phrasing and reworked every
-  `df12/*` rule in `docs/usage.md` with Purpose, Scope and behaviour,
+  `df12/*` rule in `docs/users-guide.md` with Purpose, Scope and behaviour,
   Configuration, What is allowed, What is denied, and How to fix sections.
 - [x] 2026-05-26: Reran Milestone 4 deterministic gates after CodeRabbit
   fixes. `make check-fmt`, `make typecheck`, `make lint`, `make test`, and
@@ -276,9 +276,9 @@ substantially expand scope beyond the import.
   documentation review fixes. `make check-fmt`, `make typecheck`, `make lint`,
   `make test`, and `make markdownlint` all passed.
 - [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 4. It raised
-  one remaining grammar finding in `docs/usage.md`: use "add a complete JSDoc"
+  one remaining grammar finding in `docs/users-guide.md`: use "add a complete JSDoc"
   rather than "add complete JSDoc".
-- [x] 2026-05-26: Patched the final grammar finding in `docs/usage.md`.
+- [x] 2026-05-26: Patched the final grammar finding in `docs/users-guide.md`.
 - [x] 2026-05-26: Reran Milestone 4 deterministic gates after the final grammar
   fix. `make check-fmt`, `make typecheck`, `make lint`, `make test`, and
   `make markdownlint` all passed.
@@ -314,6 +314,10 @@ substantially expand scope beyond the import.
   invalid baseline files as lint diagnostics, documented invalid-baseline
   behaviour, and added behavioural coverage for binding patterns, missing error
   docs, and loop predicate statements.
+- [x] 2026-06-03: Verified follow-up review findings. Added once-per-file
+  baseline error reporting, rejected non-array `parsed.entries` values, and
+  made `docs/users-guide.md` the single canonical guide by deleting the duplicate
+  guide file and updating references.
 
 ## Surprises & Discoveries
 
@@ -631,7 +635,7 @@ gates pass, and CodeRabbit has no applicable concerns.
 ### Milestone 4: Document consumer usage and maintenance policy
 
 Add documentation under `docs/`, with at least `docs/development.md` or
-`docs/usage.md`, explaining:
+`docs/users-guide.md`, explaining:
 
 - The Makefile gate order and the package scripts behind each Makefile target.
 - How to run `make check-fmt`, `make typecheck`, `make lint`, and `make test`.
@@ -756,7 +760,7 @@ Biome now enforces the stricter complexity contract over source, tests, root
 configuration files, `.oxlintrc.json`, and `tools/**/*`. No Biome suppressions
 were needed.
 
-Consumer documentation now lives in `README.md` and `docs/usage.md`. It covers
+Consumer documentation now lives in `README.md` and `docs/users-guide.md`. It covers
 local gates, downstream Oxlint configuration, each `df12/*` rule, suppression
 policy, and `.jsdoc-baseline.json` policy.
 

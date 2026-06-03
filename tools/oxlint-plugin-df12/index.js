@@ -21,11 +21,19 @@ const TEST_STATEMENT_NODE_TYPES = new Set([
   "IfStatement",
   "WhileStatement",
 ]);
+const reportedBaselineSources = new WeakSet();
 /** Loads baseline entries from the repository root. */
 function loadBaseline(baselineDir = process.cwd()) {
   const baselinePath = path.join(baselineDir, ".jsdoc-baseline.json");
   try {
     const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
+    if (parsed.entries !== undefined && !Array.isArray(parsed.entries)) {
+      return {
+        baseline: new Set(),
+        error: new TypeError(".jsdoc-baseline.json parsed.entries must be an array."),
+        ok: false,
+      };
+    }
     return { baseline: new Set(parsed.entries ?? []), ok: true };
   } catch (error) {
     if (error?.code === "ENOENT") return { baseline: new Set(), ok: true };
@@ -398,6 +406,7 @@ function checkPrivateFunction(context, record, docs) {
 
 /** Checks a single covered function record. */
 function checkFunctionRecord(context, record, state) {
+  reportBaselineError(context, record.functionNode, state);
   if (!record.name || isBaselined(context, record, state.baseline, state.workingDirectory)) return;
   const docs = parseLeadingJsDoc(context, record.docsNode);
   if (!docs) {
@@ -411,9 +420,11 @@ function checkFunctionRecord(context, record, state) {
 /** Reports a baseline configuration error once for the current linted file. */
 function reportBaselineError(context, node, state) {
   if (!state.baselineError) return;
+  if (reportedBaselineSources.has(context.sourceCode)) return;
+  reportedBaselineSources.add(context.sourceCode);
   context.report({
-    node,
     message: `Could not load .jsdoc-baseline.json: ${state.baselineError.message}`,
+    node,
   });
 }
 
@@ -563,7 +574,6 @@ const requirePublicJsDocRule = {
     let exportedNames = new Set();
     return {
       Program(node) {
-        reportBaselineError(context, node, state);
         exportedNames = collectExportedNames(node);
       },
       FunctionDeclaration(node) {
@@ -592,7 +602,6 @@ const requirePrivateJsDocRule = {
     let exportedNames = new Set();
     return {
       Program(node) {
-        reportBaselineError(context, node, state);
         exportedNames = collectExportedNames(node);
       },
       FunctionDeclaration(node) {

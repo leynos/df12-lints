@@ -721,7 +721,9 @@ describe("df12 JSDoc baseline", () => {
       testInternals.resetBaselineCache();
     }
   });
+});
 
+describe("df12 JSDoc baseline errors", () => {
   it("reports invalid baseline JSON and uses an empty baseline", () => {
     // Baseline cache assertions reset around each fixture so tests never rely
     // on state left behind by another workspace.
@@ -752,6 +754,7 @@ describe("df12 JSDoc baseline", () => {
       const configPath = writeConfig({
         directory: workspace.directory,
         rules: {
+          "df12/require-private-jsdoc": "error",
           "df12/require-public-jsdoc": "error",
         },
       });
@@ -772,9 +775,31 @@ describe("df12 JSDoc baseline", () => {
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("Could not load .jsdoc-baseline.json");
+      expect(countRuleFindings(result.stdout, "Could not load .jsdoc-baseline.json")).toBe(1);
+      expect(result.stdout).toContain("4 problems");
       expect(result.stdout).toContain("df12(require-public-jsdoc)");
     } finally {
       workspace.cleanup();
+    }
+  });
+
+  it("rejects malformed baseline entries with a clear error", () => {
+    const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
+    try {
+      writeFileSync(
+        path.join(directory, ".jsdoc-baseline.json"),
+        JSON.stringify({ entries: "later.ts#value" }),
+        "utf8",
+      );
+
+      const result = testInternals.loadBaseline(directory);
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toBeInstanceOf(TypeError);
+      expect(result.error.message).toContain("parsed.entries must be an array");
+      expect(result.baseline.size).toBe(0);
+    } finally {
+      rmSync(directory, { force: true, recursive: true });
     }
   });
 });
