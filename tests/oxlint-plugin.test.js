@@ -721,6 +721,30 @@ describe("df12 JSDoc baseline", () => {
       testInternals.resetBaselineCache();
     }
   });
+
+  it("memoizes baseline reads per directory within a process", () => {
+    testInternals.resetBaselineCache();
+    const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
+    try {
+      const baselinePath = path.join(directory, ".jsdoc-baseline.json");
+      writeFileSync(baselinePath, JSON.stringify({ entries: ["first.ts#value"] }), "utf8");
+
+      const firstLoad = testInternals.loadBaseline(directory);
+      writeFileSync(baselinePath, JSON.stringify({ entries: [] }), "utf8");
+      const cachedLoad = testInternals.loadBaseline(directory);
+      testInternals.resetBaselineCache();
+      const freshLoad = testInternals.loadBaseline(directory);
+
+      expect(firstLoad.ok).toBe(true);
+      expect(cachedLoad).toBe(firstLoad);
+      expect(cachedLoad.baseline.has("first.ts#value")).toBe(true);
+      expect(freshLoad.ok).toBe(true);
+      expect(freshLoad.baseline.size).toBe(0);
+    } finally {
+      rmSync(directory, { force: true, recursive: true });
+      testInternals.resetBaselineCache();
+    }
+  });
 });
 
 describe("df12 JSDoc baseline errors", () => {
@@ -735,13 +759,14 @@ describe("df12 JSDoc baseline errors", () => {
 
       const invalidBaseline = testInternals.loadBaseline(directory);
       writeFileSync(baselinePath, JSON.stringify({ entries: ["later.ts#value"] }), "utf8");
-      const cachedBaseline = testInternals.loadBaseline(directory);
+      testInternals.resetBaselineCache();
+      const reloadedBaseline = testInternals.loadBaseline(directory);
 
       expect(invalidBaseline.ok).toBe(false);
       expect(invalidBaseline.error).toBeInstanceOf(SyntaxError);
       expect(invalidBaseline.baseline.size).toBe(0);
-      expect(cachedBaseline.ok).toBe(true);
-      expect(cachedBaseline.baseline.size).toBe(1);
+      expect(reloadedBaseline.ok).toBe(true);
+      expect(reloadedBaseline.baseline.size).toBe(1);
     } finally {
       rmSync(directory, { force: true, recursive: true });
       testInternals.resetBaselineCache();

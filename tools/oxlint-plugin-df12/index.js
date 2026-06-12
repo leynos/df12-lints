@@ -22,8 +22,10 @@ const TEST_STATEMENT_NODE_TYPES = new Set([
   "WhileStatement",
 ]);
 const reportedBaselineSources = new WeakSet();
-/** Loads baseline entries from the repository root. */
-function loadBaseline(baselineDir = process.cwd()) {
+const baselineResultsByDirectory = new Map();
+
+/** Reads and parses baseline entries from a directory without caching. */
+function readBaseline(baselineDir) {
   const baselinePath = path.join(baselineDir, ".jsdoc-baseline.json");
   try {
     const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
@@ -41,8 +43,23 @@ function loadBaseline(baselineDir = process.cwd()) {
   }
 }
 
-/** Keeps the test helper stable; baseline loading is intentionally uncached. */
-function resetBaselineCache() {}
+// The baseline cannot change mid-run, so each directory is read from disk at
+// most once per process; rule `create` hooks run once per file per rule and
+// would otherwise re-read the same file for every linted file. Separate lint
+// processes start with an empty cache, so cross-process freshness still holds.
+/** Loads baseline entries from the repository root, memoized per directory. */
+function loadBaseline(baselineDir = process.cwd()) {
+  const cached = baselineResultsByDirectory.get(baselineDir);
+  if (cached) return cached;
+  const result = readBaseline(baselineDir);
+  baselineResultsByDirectory.set(baselineDir, result);
+  return result;
+}
+
+/** Clears memoized baseline results so the next load re-reads from disk. */
+function resetBaselineCache() {
+  baselineResultsByDirectory.clear();
+}
 
 /** Returns the working directory used for repository-relative rule state. */
 function workingDirectory(context) {
