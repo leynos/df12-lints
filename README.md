@@ -8,19 +8,40 @@ rules for conditional complexity and JavaScript documentation contracts.
 
 ## Installation
 
-The package is not published to a registry. Install it as a tag-pinned git
-dependency:
+The package is deliberately unpublished (`"private": true`) and is consumed
+as a git dependency pinned to a release tag. Add it to `package.json` with a
+tag reference rather than a bare commit SHA:
 
-```bash
-bun add df12-lints@github:leynos/df12-lints#v0.0.0
-# or
-npm install github:leynos/df12-lints#v0.0.0
+```json
+{
+  "devDependencies": {
+    "df12-lints": "github:leynos/df12-lints#v0.1.0"
+  }
+}
 ```
 
-A `prepare` script builds the package on install. Bun blocks dependency
-lifecycle scripts by default, so Bun consumers must allow it by adding
-`df12-lints` to `trustedDependencies`. See
+The `prepare` script builds the root entry point (`dist/index.js`) at install
+time. npm and Yarn run a git dependency's `prepare` script automatically. Bun
+blocks dependency lifecycle scripts by default, so Bun consumers must trust
+the package first:
+
+```json
+{
+  "trustedDependencies": ["df12-lints"]
+}
+```
+
+The `df12-lints/oxlint-plugin` subpath resolves to committed source and works
+even when the `prepare` script has not run. See
 [docs/users-guide.md](docs/users-guide.md#installation) for details.
+
+## Releases
+
+Releases are cut by tagging the repository (for example `v0.1.0`), following
+semantic versioning. Consumers upgrade by moving their pinned tag; tags are
+never rewritten. If the package later needs semver ranges or
+changelog-driven upgrades, the intended path is publishing to a registry and
+dropping `"private": true`.
 
 ## Usage
 
