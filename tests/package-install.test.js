@@ -1,20 +1,20 @@
 /**
- * @file Smoke tests for package entry points after a clean install.
+ * @file Smoke tests for package entry points and packaging after a clean install.
  *
  * Two consumer flows are exercised against the tracked working tree:
  *
  * - A Bun git-style install that copies the tree, runs `bun install` so the
  *   `prepare` script builds `dist/`, and imports the package through a symlink.
- * - An `npm pack` flow that builds the publishable tarball and installs it into
- *   a consumer. This is the flow npm uses for both registry and git
- *   dependencies, so it proves the `files` whitelist ships `dist/` even though
- *   `dist/` is git-ignored.
+ * - An `npm pack` flow that builds the publishable tarball, checks the package
+ *   contents, and installs it into a consumer. This is the flow npm uses for
+ *   both registry and git dependencies, so it proves the `files` whitelist ships
+ *   the export targets even though `dist/` is git-ignored.
  *
  * Both guard the root `.` export, which previously resolved to ungenerated (or
  * unpacked) build output.
  */
 
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
   cpSync,
@@ -63,6 +63,23 @@ function copyTrackedFiles(destination) {
   }
 }
 
+let installedDirectory;
+
+/** Returns a clean-install package directory, creating it on first use. */
+function installedPackageDirectory() {
+  if (installedDirectory) return installedDirectory;
+  const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-pkg-"));
+  copyTrackedFiles(directory);
+  const install = run("bun", ["install"], directory);
+  expect(install.status).toBe(0);
+  installedDirectory = directory;
+  return installedDirectory;
+}
+
+afterAll(() => {
+  if (installedDirectory) rmSync(installedDirectory, { force: true, recursive: true });
+});
+
 /** Writes a consumer module that resolves both package exports by name. */
 function writeConsumerModule(directory) {
   const consumerPath = path.join(directory, "consumer.mjs");
@@ -83,6 +100,13 @@ function writeConsumerModule(directory) {
   return consumerPath;
 }
 
+/** Writes a consumer project that resolves the package by name. */
+function writeConsumer(directory, packageDirectory) {
+  mkdirSync(path.join(directory, "node_modules"), { recursive: true });
+  symlinkSync(packageDirectory, path.join(directory, "node_modules", "df12-lints"), "dir");
+  return writeConsumerModule(directory);
+}
+
 /** Runs the consumer module and asserts both exports resolve as expected. */
 function expectExportsResolve(consumerPath, consumerDirectory) {
   const consume = run("node", [consumerPath], consumerDirectory);
@@ -91,34 +115,16 @@ function expectExportsResolve(consumerPath, consumerDirectory) {
   expect(JSON.parse(consume.stdout)).toEqual(EXPECTED_EXPORTS);
 }
 
-/** Removes the given directories, ignoring missing entries. */
-function cleanup(...directories) {
-  for (const directory of directories) {
-    rmSync(directory, { force: true, recursive: true });
-  }
-}
-
 describe("package entry points after a clean install", () => {
   it(
-    "exposes the root and oxlint-plugin exports to a Bun consumer",
+    "exposes the root and oxlint-plugin exports to consumers",
     () => {
-      const packageDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-pkg-"));
       const consumerDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-consumer-"));
       try {
-        copyTrackedFiles(packageDirectory);
-        const install = run("bun", ["install"], packageDirectory);
-        expect(install.status).toBe(0);
-
-        mkdirSync(path.join(consumerDirectory, "node_modules"), { recursive: true });
-        symlinkSync(
-          packageDirectory,
-          path.join(consumerDirectory, "node_modules", "df12-lints"),
-          "dir",
-        );
-        const consumerPath = writeConsumerModule(consumerDirectory);
+        const consumerPath = writeConsumer(consumerDirectory, installedPackageDirectory());
         expectExportsResolve(consumerPath, consumerDirectory);
       } finally {
-        cleanup(packageDirectory, consumerDirectory);
+        rmSync(consumerDirectory, { force: true, recursive: true });
       }
     },
     INSTALL_TIMEOUT_MS,
@@ -127,15 +133,9 @@ describe("package entry points after a clean install", () => {
   it(
     "ships dist in the npm pack tarball so the root export resolves",
     () => {
-      const packageDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-pack-"));
+      const packageDirectory = installedPackageDirectory();
       const consumerDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-tarball-"));
       try {
-        copyTrackedFiles(packageDirectory);
-        // Install devDependencies so the `prepare` script's `tsc` is on PATH
-        // when `npm pack` builds `dist/`.
-        const deps = run("bun", ["install"], packageDirectory);
-        expect(deps.status).toBe(0);
-        // `npm pack` runs the `prepare` script, building `dist/` before packing.
         const pack = run(
           "npm",
           ["pack", "--json", "--pack-destination", packageDirectory],
@@ -144,12 +144,22 @@ describe("package entry points after a clean install", () => {
         expect(pack.status).toBe(0);
         const [tarball] = JSON.parse(pack.stdout);
         const packedPaths = tarball.files.map((entry) => entry.path);
-        // The `files` whitelist must override `.gitignore` for the build output.
-        expect(packedPaths).toContain("dist/index.js");
-        expect(packedPaths).toContain("dist/index.d.ts");
+        const requiredPaths = [
+          "README.md",
+          "dist/index.d.ts",
+          "dist/index.js",
+          "package.json",
+          "src/index.ts",
+          "tools/oxlint-plugin-df12/index.js",
+        ];
+        for (const required of requiredPaths) {
+          expect(packedPaths).toContain(required);
+        }
+        const excludedPaths = packedPaths.filter(
+          (packedPath) => packedPath.startsWith("tests/") || packedPath === "Makefile",
+        );
+        expect(excludedPaths).toEqual([]);
 
-        // Snapshot the compiled artifact so TypeScript emit drift is caught,
-        // not just that the files exist.
         const distDirectory = path.join(packageDirectory, "dist");
         expect(readFileSync(path.join(distDirectory, "index.js"), "utf8")).toMatchSnapshot();
         expect(readFileSync(path.join(distDirectory, "index.d.ts"), "utf8")).toMatchSnapshot();
@@ -169,7 +179,7 @@ describe("package entry points after a clean install", () => {
         const consumerPath = writeConsumerModule(consumerDirectory);
         expectExportsResolve(consumerPath, consumerDirectory);
       } finally {
-        cleanup(packageDirectory, consumerDirectory);
+        rmSync(consumerDirectory, { force: true, recursive: true });
       }
     },
     INSTALL_TIMEOUT_MS,
