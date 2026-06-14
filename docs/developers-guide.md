@@ -16,6 +16,31 @@ The package entrypoint exposes `oxlintPluginSpecifier` so downstream tooling
 can refer to the stable plugin import path without duplicating the literal
 specifier.
 
+## Build system
+
+The package root export `.` resolves to `dist/index.js` (types
+`dist/index.d.ts`). These files are generated, not committed; `dist/` is
+git-ignored.
+
+- [`tsconfig.build.json`](../tsconfig.build.json) drives emission. It extends
+  the base config but sets `rootDir` and `include` to `src`, so `tsc` emits
+  `dist/index.js`. The base [`tsconfig.json`](../tsconfig.json) also includes
+  `tests`; building with it would emit `dist/src/index.js` and miss the path
+  named by the export map. The base config is still used for type-checking
+  through `make typecheck` (`tsc --noEmit`).
+- `bun run build` runs `tsc -p tsconfig.build.json`.
+- The `prepare` script runs the same build, so `bun install` and `npm install`
+  generate `dist/` automatically. This covers git and registry installs without
+  a manual build step. Bun blocks dependency lifecycle scripts by default, so
+  Bun consumers of a git install must list `df12-lints` in
+  `trustedDependencies` for the `prepare` build to run.
+- The `package.json` `files` whitelist ships `dist`, `src`, and
+  `tools/oxlint-plugin-df12` in the packed tarball. `files` overrides
+  `.gitignore`, which would otherwise drop the generated `dist/` from
+  `npm pack` (the flow npm uses for both registry and git dependencies). `src`
+  is shipped so the emitted source maps, which reference `../src/index.ts`,
+  resolve in consumers.
+
 ## Oxlint plugin internals
 
 The plugin registers four df12 rules:
@@ -55,6 +80,14 @@ The Bun suite covers the package export, Makefile/package script wiring, rule
 behaviour, snapshots for multiline diagnostics, property tests for predicate
 counting, and baseline-cache regression cases.
 
+[`tests/package-install.test.js`](../tests/package-install.test.js) covers the
+distribution surface. It installs the tracked tree two ways — a Bun git-style
+install and an `npm pack` tarball install — and imports both exports by package
+name from a Node.js consumer. The tarball case also snapshots the compiled
+`dist/index.js` and `dist/index.d.ts`, so TypeScript emit drift is caught
+alongside the runtime-resolution checks, and asserts the `files` whitelist
+keeps `dist/` in the packed artifact.
+
 The repository has no Rust compile-time API. Rust-specific `trybuild` tests are
 therefore not applicable to this package; TypeScript compile-time validation is
-covered by `make typecheck`.
+covered by `make typecheck` and the compiled-output snapshots above.

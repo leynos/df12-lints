@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "license": "ISC",
+  "files": [
+    "dist",
+    "src",
+    "tools/oxlint-plugin-df12"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -12,7 +17,8 @@
     "./oxlint-plugin": "./tools/oxlint-plugin-df12/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
     "fmt": "bunx biome format --write .",
     "check:fmt": "bunx biome check --formatter-enabled=true --linter-enabled=false .",
     "lint": "bun run lint:biome && bun run lint:oxlint && bun run lint:markdown",

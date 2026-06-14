@@ -1,0 +1,25 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`package entry points after a clean install ships dist in the npm pack tarball so the root export resolves 1`] = `
+"/**
+ * @file Public package metadata for df12 lint tooling.
+ *
+ * This module is the small TypeScript entrypoint exported by the package root.
+ * It gives downstream configuration code a stable way to refer to the bundled
+ * Oxlint plugin subpath without duplicating that string in every consumer.
+ */
+export const oxlintPluginSpecifier = "df12-lints/oxlint-plugin";
+//# sourceMappingURL=index.js.map"
+`;
+
+exports[`package entry points after a clean install ships dist in the npm pack tarball so the root export resolves 2`] = `
+"/**
+ * @file Public package metadata for df12 lint tooling.
+ *
+ * This module is the small TypeScript entrypoint exported by the package root.
+ * It gives downstream configuration code a stable way to refer to the bundled
+ * Oxlint plugin subpath without duplicating that string in every consumer.
+ */
+export declare const oxlintPluginSpecifier = "df12-lints/oxlint-plugin";
+//# sourceMappingURL=index.d.ts.map"
+`;
