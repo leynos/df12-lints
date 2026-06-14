@@ -3,6 +3,9 @@
  *
  * The plugin uses Oxlint's ESLint-compatible JavaScript plugin API so the
  * project can enforce local rules without a separate linting process.
+ *
+ * Parsed JSDoc baseline entries from `.jsdoc-baseline.json` are memoised per
+ * directory to avoid redundant disk reads within a single lint process.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
