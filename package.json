@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "license": "ISC",
+  "files": [
+    "dist",
+    "tools/oxlint-plugin-df12"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
