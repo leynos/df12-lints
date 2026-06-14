@@ -26,6 +26,37 @@ const TEST_STATEMENT_NODE_TYPES = new Set([
 ]);
 const reportedBaselineSources = new WeakSet();
 const baselineResultsByDirectory = new Map();
+const BASELINE_CACHE_DEBUG_ENV = "DF12_LINTS_DEBUG_BASELINE_CACHE";
+const baselineCacheMetrics = {
+  hits: 0,
+  misses: 0,
+};
+
+/** Reports whether baseline cache debug output is enabled. */
+function baselineCacheDebugEnabled() {
+  return process.env[BASELINE_CACHE_DEBUG_ENV] === "1";
+}
+
+/** Returns the current baseline cache hit ratio. */
+function baselineCacheHitRatio() {
+  const total = baselineCacheMetrics.hits + baselineCacheMetrics.misses;
+  if (total === 0) return "0.00";
+  return (baselineCacheMetrics.hits / total).toFixed(2);
+}
+
+/** Writes opt-in baseline cache debug output for maintainers. */
+function logBaselineCache(event, baselineDir, result) {
+  if (!baselineCacheDebugEnabled()) return;
+  const fields = [
+    `event=${event}`,
+    `directory=${JSON.stringify(baselineDir)}`,
+    `hits=${baselineCacheMetrics.hits}`,
+    `misses=${baselineCacheMetrics.misses}`,
+    `hitRatio=${baselineCacheHitRatio()}`,
+  ];
+  if (result?.error) fields.push(`error=${JSON.stringify(result.error.message)}`);
+  console.error(`[df12-lints] baseline-cache ${fields.join(" ")}`);
+}
 
 /** Reads and parses baseline entries from a directory without caching. */
 function readBaseline(baselineDir) {
@@ -53,15 +84,24 @@ function readBaseline(baselineDir) {
 /** Loads baseline entries from the specified directory, memoised per directory. */
 function loadBaselineWithCache(baselineDir = process.cwd()) {
   const cached = baselineResultsByDirectory.get(baselineDir);
-  if (cached) return cached;
+  if (cached) {
+    baselineCacheMetrics.hits += 1;
+    logBaselineCache("hit", baselineDir, cached);
+    return cached;
+  }
   const result = readBaseline(baselineDir);
   baselineResultsByDirectory.set(baselineDir, result);
+  baselineCacheMetrics.misses += 1;
+  logBaselineCache("miss", baselineDir, result);
   return result;
 }
 
-/** Clears memoized baseline results so the next load re-reads from disk. */
+/** Clears memoised baseline results so the next load re-reads from disk. */
 function resetBaselineCache() {
   baselineResultsByDirectory.clear();
+  baselineCacheMetrics.hits = 0;
+  baselineCacheMetrics.misses = 0;
+  logBaselineCache("reset", "*");
 }
 
 /** Returns the working directory used for repository-relative rule state. */

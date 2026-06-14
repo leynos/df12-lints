@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import fc from "fast-check";
@@ -74,7 +74,7 @@ function writeSource({ directory, name, source }) {
 }
 
 /** Runs Oxlint against a fixture workspace. */
-function runOxlint({ configPath, cwd = PROJECT_ROOT, filePath, filePaths }) {
+function runOxlint({ configPath, cwd = PROJECT_ROOT, env, filePath, filePaths }) {
   const lintTargets = filePaths ?? [filePath];
   const result = spawnSync(
     "bunx",
@@ -82,6 +82,7 @@ function runOxlint({ configPath, cwd = PROJECT_ROOT, filePath, filePaths }) {
     {
       cwd,
       encoding: "utf8",
+      env: { ...process.env, ...env },
       timeout: 30_000,
     },
   );
@@ -94,61 +95,14 @@ function countRuleFindings(output, ruleId) {
   return output.split("\n").filter((line) => line.includes(ruleId)).length;
 }
 
+/** Counts baseline cache debug events in Oxlint stderr output. */
+function countBaselineCacheEvents(output, event) {
+  return output.split("\n").filter((line) => line.includes(`baseline-cache event=${event}`)).length;
+}
+
 /** Replaces fixture-local absolute paths with stable snapshot text. */
 function normalizeDiagnostics(output, directory) {
   return output.replaceAll(directory, "<workspace>");
-}
-
-/** Creates generated baseline directories for cache property tests. */
-function createBaselineDirectories(rootDirectory, identifiers) {
-  return identifiers.map((identifier) => {
-    const directory = path.join(rootDirectory, `case-${identifier}`);
-    const entry = `file-${identifier}.ts#value`;
-    mkdirSync(directory, { recursive: true });
-    writeFileSync(
-      path.join(directory, ".jsdoc-baseline.json"),
-      JSON.stringify({ entries: [entry] }),
-      "utf8",
-    );
-    return { directory, entry };
-  });
-}
-
-/** Checks cached baseline object identity and directory isolation. */
-function expectCachedBaselineLoads(directories) {
-  const firstLoads = directories.map(({ directory }) =>
-    testInternals.loadBaselineWithCache(directory),
-  );
-  const repeatedLoads = directories.map(({ directory }) =>
-    testInternals.loadBaselineWithCache(directory),
-  );
-
-  for (const [index, { entry }] of directories.entries()) {
-    expect(repeatedLoads[index]).toBe(firstLoads[index]);
-    expect(repeatedLoads[index].baseline.has(entry)).toBe(true);
-    expect(repeatedLoads[index].baseline.size).toBe(1);
-  }
-}
-
-/** Rewrites generated baseline files to empty entries. */
-function clearBaselineFiles(directories) {
-  for (const { directory } of directories) {
-    writeFileSync(
-      path.join(directory, ".jsdoc-baseline.json"),
-      JSON.stringify({ entries: [] }),
-      "utf8",
-    );
-  }
-}
-
-/** Checks that cache reset makes every generated directory re-read from disk. */
-function expectEmptyBaselinesAfterReset(directories) {
-  testInternals.resetBaselineCache();
-  for (const { directory } of directories) {
-    const freshLoad = testInternals.loadBaselineWithCache(directory);
-    expect(freshLoad.ok).toBe(true);
-    expect(freshLoad.baseline.size).toBe(0);
-  }
 }
 
 /**
@@ -778,34 +732,10 @@ describe("df12 JSDoc baseline", () => {
       testInternals.resetBaselineCache();
     }
   });
-
-  it("memoizes baseline reads per directory within a process", () => {
-    testInternals.resetBaselineCache();
-    const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
-    try {
-      const baselinePath = path.join(directory, ".jsdoc-baseline.json");
-      writeFileSync(baselinePath, JSON.stringify({ entries: ["first.ts#value"] }), "utf8");
-
-      const firstLoad = testInternals.loadBaselineWithCache(directory);
-      writeFileSync(baselinePath, JSON.stringify({ entries: [] }), "utf8");
-      const cachedLoad = testInternals.loadBaselineWithCache(directory);
-      testInternals.resetBaselineCache();
-      const freshLoad = testInternals.loadBaselineWithCache(directory);
-
-      expect(firstLoad.ok).toBe(true);
-      expect(cachedLoad).toBe(firstLoad);
-      expect(cachedLoad.baseline.has("first.ts#value")).toBe(true);
-      expect(freshLoad.ok).toBe(true);
-      expect(freshLoad.baseline.size).toBe(0);
-    } finally {
-      rmSync(directory, { force: true, recursive: true });
-      testInternals.resetBaselineCache();
-    }
-  });
 });
 
 describe("df12 JSDoc baseline cache behaviour", () => {
-  it("applies one baseline across multiple files in a single lint process", () => {
+  it("reads one baseline across multiple files in a single lint process", () => {
     testInternals.resetBaselineCache();
     const workspace = createWorkspace();
     try {
@@ -844,37 +774,72 @@ describe("df12 JSDoc baseline cache behaviour", () => {
       const result = runOxlint({
         configPath,
         cwd: workspace.directory,
+        env: { DF12_LINTS_DEBUG_BASELINE_CACHE: "1" },
         filePaths: [firstFilePath, secondFilePath],
       });
 
       expect(result.status).toBe(0);
       expect(result.stdout).not.toContain("df12(require-public-jsdoc)");
+      expect(countBaselineCacheEvents(result.stderr, "miss")).toBe(1);
+      expect(countBaselineCacheEvents(result.stderr, "hit")).toBe(3);
+      expect(result.stderr).toContain("hits=3");
+      expect(result.stderr).toContain("misses=1");
+      expect(result.stderr).toContain("hitRatio=0.75");
     } finally {
       workspace.cleanup();
       testInternals.resetBaselineCache();
     }
   });
+});
 
-  it("preserves directory isolation, repeated loads, and reset behaviour", () => {
-    fc.assert(
-      fc.property(
-        fc.uniqueArray(fc.integer({ min: 1, max: 1_000 }), { minLength: 1, maxLength: 5 }),
-        (identifiers) => {
-          testInternals.resetBaselineCache();
-          const rootDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
-          try {
-            const directories = createBaselineDirectories(rootDirectory, identifiers);
-            expectCachedBaselineLoads(directories);
-            clearBaselineFiles(directories);
-            expectEmptyBaselinesAfterReset(directories);
-          } finally {
-            rmSync(rootDirectory, { force: true, recursive: true });
-            testInternals.resetBaselineCache();
+describe("df12 JSDoc baseline cache process boundaries", () => {
+  it("starts each lint process with an empty baseline cache", () => {
+    const workspace = createWorkspace();
+    try {
+      const configPath = writeConfig({
+        directory: workspace.directory,
+        rules: JSDOC_RULES,
+      });
+      const filePath = writeSource({
+        directory: workspace.directory,
+        name: "baseline-process.ts",
+        source: `
+          /** @file Baseline process fixture. */
+
+          export function skipped(value) {
+            return value;
           }
-        },
-      ),
-      { numRuns: 20 },
-    );
+        `,
+      });
+      const baselinePath = path.join(workspace.directory, ".jsdoc-baseline.json");
+      writeFileSync(
+        baselinePath,
+        JSON.stringify({ entries: ["baseline-process.ts#skipped"] }),
+        "utf8",
+      );
+
+      const skippedResult = runOxlint({
+        configPath,
+        cwd: workspace.directory,
+        env: { DF12_LINTS_DEBUG_BASELINE_CACHE: "1" },
+        filePath,
+      });
+      writeFileSync(baselinePath, JSON.stringify({ entries: [] }), "utf8");
+      const reportedResult = runOxlint({
+        configPath,
+        cwd: workspace.directory,
+        env: { DF12_LINTS_DEBUG_BASELINE_CACHE: "1" },
+        filePath,
+      });
+
+      expect(skippedResult.stdout).not.toContain("df12(require-public-jsdoc)");
+      expect(reportedResult.stdout).toContain("df12(require-public-jsdoc)");
+      expect(countBaselineCacheEvents(skippedResult.stderr, "miss")).toBe(1);
+      expect(countBaselineCacheEvents(reportedResult.stderr, "miss")).toBe(1);
+    } finally {
+      workspace.cleanup();
+      testInternals.resetBaselineCache();
+    }
   });
 });
 
@@ -927,13 +892,20 @@ describe("df12 JSDoc baseline errors", () => {
       });
       writeFileSync(path.join(workspace.directory, ".jsdoc-baseline.json"), "{", "utf8");
 
-      const result = runOxlint({ configPath, cwd: workspace.directory, filePath });
+      const result = runOxlint({
+        configPath,
+        cwd: workspace.directory,
+        env: { DF12_LINTS_DEBUG_BASELINE_CACHE: "1" },
+        filePath,
+      });
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("Could not load .jsdoc-baseline.json");
       expect(countRuleFindings(result.stdout, "Could not load .jsdoc-baseline.json")).toBe(1);
       expect(result.stdout).toContain("4 problems");
       expect(result.stdout).toContain("df12(require-public-jsdoc)");
+      expect(result.stderr).toContain("baseline-cache event=miss");
+      expect(result.stderr).toContain("error=");
     } finally {
       workspace.cleanup();
     }

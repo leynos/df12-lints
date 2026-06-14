@@ -41,6 +41,10 @@ Baseline loading is split into two stages:
   force a re-read when baseline files are intentionally changed and between
   lint process boundaries.
 
+Set `DF12_LINTS_DEBUG_BASELINE_CACHE=1` to emit baseline cache hit, miss,
+error, and hit-ratio details to stderr while debugging local lint runs. Normal
+lint runs do not emit cache logs.
+
 Baseline state is injected into rule checks when `create(context)` runs, so
 test fixtures can supply an explicit directory without mutating `process.cwd()`.
 
