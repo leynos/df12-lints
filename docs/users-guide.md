@@ -4,6 +4,46 @@ This package hosts shared df12 lint rules for JavaScript and TypeScript
 projects. The main deliverable is an Oxlint plugin exposed as
 `df12-lints/oxlint-plugin`.
 
+## Installation
+
+`df12-lints` is not published to a registry. Install it as a tag-pinned git
+dependency:
+
+```bash
+bun add df12-lints@github:leynos/df12-lints#v0.0.0
+# or
+npm install github:leynos/df12-lints#v0.0.0
+```
+
+The package builds its `dist/` output during install through a `prepare`
+script, so no manual build step is required. Bun blocks dependency lifecycle
+scripts by default; a Bun consumer must allow this build by listing the package
+in `trustedDependencies`:
+
+```json
+{
+  "trustedDependencies": ["df12-lints"]
+}
+```
+
+npm runs a git dependency's `prepare` script automatically, so npm consumers
+need no extra configuration.
+
+## Package exports
+
+The package exposes two entrypoints:
+
+- `df12-lints/oxlint-plugin` — the Oxlint plugin (the main deliverable).
+- `df12-lints` — package metadata. The root export provides
+  `oxlintPluginSpecifier`, the stable plugin import path, so configuration code
+  can reference it without repeating the literal string:
+
+  ```ts
+  import { oxlintPluginSpecifier } from "df12-lints";
+
+  // oxlintPluginSpecifier === "df12-lints/oxlint-plugin"
+  ```
+
 ## Local gates
 
 Use the Makefile targets in normal development:

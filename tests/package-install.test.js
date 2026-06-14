@@ -16,7 +16,15 @@
 
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -139,6 +147,12 @@ describe("package entry points after a clean install", () => {
         // The `files` whitelist must override `.gitignore` for the build output.
         expect(packedPaths).toContain("dist/index.js");
         expect(packedPaths).toContain("dist/index.d.ts");
+
+        // Snapshot the compiled artifact so TypeScript emit drift is caught,
+        // not just that the files exist.
+        const distDirectory = path.join(packageDirectory, "dist");
+        expect(readFileSync(path.join(distDirectory, "index.js"), "utf8")).toMatchSnapshot();
+        expect(readFileSync(path.join(distDirectory, "index.d.ts"), "utf8")).toMatchSnapshot();
 
         writeFileSync(
           path.join(consumerDirectory, "package.json"),
