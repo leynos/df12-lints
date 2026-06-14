@@ -47,7 +47,7 @@ function readBaseline(baselineDir) {
 // most once per process; rule `create` hooks run once per file per rule and
 // would otherwise re-read the same file for every linted file. Separate lint
 // processes start with an empty cache, so cross-process freshness still holds.
-/** Loads baseline entries from the repository root, memoized per directory. */
+/** Loads baseline entries from the specified directory, memoised per directory. */
 function loadBaselineWithCache(baselineDir = process.cwd()) {
   const cached = baselineResultsByDirectory.get(baselineDir);
   if (cached) return cached;
