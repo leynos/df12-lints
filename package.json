@@ -6,6 +6,7 @@
   "license": "ISC",
   "files": [
     "dist",
+    "docs/users-guide.md",
     "src",
     "tools/oxlint-plugin-df12"
   ],

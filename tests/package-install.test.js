@@ -119,9 +119,9 @@ describe("package entry points after a clean install", () => {
   it(
     "exposes the root and oxlint-plugin exports to consumers",
     () => {
-      const consumerDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-consumer-"));
+      const consumerDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-tarball-"));
       try {
-        const consumerPath = writeConsumer(consumerDirectory, installedPackageDirectory());
+        const consumerPath = writeConsumerModule(consumerDirectory);
         expectExportsResolve(consumerPath, consumerDirectory);
       } finally {
         rmSync(consumerDirectory, { force: true, recursive: true });
@@ -141,17 +141,19 @@ describe("package entry points after a clean install", () => {
           ["pack", "--json", "--pack-destination", packageDirectory],
           packageDirectory,
         );
+        const [tarball] = JSON.parse(pack.stdout);
         expect(pack.status).toBe(0);
         const [tarball] = JSON.parse(pack.stdout);
         const packedPaths = tarball.files.map((entry) => entry.path);
-        const requiredPaths = [
-          "README.md",
-          "dist/index.d.ts",
-          "dist/index.js",
-          "package.json",
-          "src/index.ts",
-          "tools/oxlint-plugin-df12/index.js",
-        ];
+      const requiredPaths = [
+        "README.md",
+        "docs/users-guide.md",
+        "dist/index.d.ts",
+        "dist/index.js",
+        "package.json",
+        "src/index.ts",
+        "tools/oxlint-plugin-df12/index.js",
+      ];
         for (const required of requiredPaths) {
           expect(packedPaths).toContain(required);
         }
