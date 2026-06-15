@@ -81,8 +81,8 @@ function readBaseline(baselineDir) {
 // most once per process; rule `create` hooks run once per file per rule and
 // would otherwise re-read the same file for every linted file. Separate lint
 // processes start with an empty cache, so cross-process freshness still holds.
-/** Loads baseline entries from the specified directory, memoised per directory. */
-function loadBaselineWithCache(baselineDir = process.cwd()) {
+/** Gets cached baseline entries or loads and caches them for the specified directory. */
+function getOrCacheBaseline(baselineDir = process.cwd()) {
   const cached = baselineResultsByDirectory.get(baselineDir);
   if (cached) {
     baselineCacheMetrics.hits += 1;
@@ -491,7 +491,7 @@ function reportBaselineError(context, node, state) {
 /** Creates per-rule JSDoc state from the lint context. */
 function jsDocRuleState(context) {
   const directory = workingDirectory(context);
-  const baselineResult = loadBaselineWithCache(directory);
+  const baselineResult = getOrCacheBaseline(directory);
   return {
     baseline: baselineResult.baseline,
     baselineError: baselineResult.error,
@@ -551,14 +551,14 @@ function isDirectStatementTest(node) {
  * @property collectExportedNames Collects names exported by a program.
  * @property containsNode Searches AST descendants while skipping nested functions.
  * @property countPredicateOperators Counts predicate operators for complex conditional checks.
- * @property loadBaselineWithCache Loads the current JSDoc baseline result.
+ * @property getOrCacheBaseline Gets or caches the current JSDoc baseline result.
  * @property resetBaselineCache Clears cached baseline state.
  */
 export const testInternals = {
   collectExportedNames,
   containsNode,
   countPredicateOperators,
-  loadBaselineWithCache,
+  getOrCacheBaseline,
   resetBaselineCache,
 };
 

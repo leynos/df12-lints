@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import fc from "fast-check";
@@ -73,9 +73,21 @@ function writeSource({ directory, name, source }) {
   return filePath;
 }
 
+/** Returns validated lint targets for an Oxlint fixture run. */
+function lintTargetsFromOptions({ filePath, filePaths }) {
+  const lintTargets = filePaths ?? [filePath];
+  if (lintTargets.length === 0) throw new TypeError("runOxlint requires at least one lint target.");
+  for (const lintTarget of lintTargets) {
+    if (typeof lintTarget !== "string" || lintTarget.trim() === "") {
+      throw new TypeError("runOxlint lint targets must be non-empty strings.");
+    }
+  }
+  return lintTargets;
+}
+
 /** Runs Oxlint against a fixture workspace. */
 function runOxlint({ configPath, cwd = PROJECT_ROOT, env, filePath, filePaths }) {
-  const lintTargets = filePaths ?? [filePath];
+  const lintTargets = lintTargetsFromOptions({ filePath, filePaths });
   const result = spawnSync(
     "bunx",
     ["oxlint", "-c", configPath, "--format", "unix", ...lintTargets],
@@ -103,6 +115,58 @@ function countBaselineCacheEvents(output, event) {
 /** Replaces fixture-local absolute paths with stable snapshot text. */
 function normalizeDiagnostics(output, directory) {
   return output.replaceAll(directory, "<workspace>");
+}
+
+/** Creates generated baseline directories for cache property tests. */
+function createBaselineDirectories(rootDirectory, identifiers) {
+  return identifiers.map((identifier) => {
+    const directory = path.join(rootDirectory, `case-${identifier}`);
+    const entry = `file-${identifier}.ts#value`;
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(
+      path.join(directory, ".jsdoc-baseline.json"),
+      JSON.stringify({ entries: [entry] }),
+      "utf8",
+    );
+    return { directory, entry };
+  });
+}
+
+/** Rewrites generated baseline files to empty entries. */
+function clearBaselineFiles(directories) {
+  for (const { directory } of directories) {
+    writeFileSync(
+      path.join(directory, ".jsdoc-baseline.json"),
+      JSON.stringify({ entries: [] }),
+      "utf8",
+    );
+  }
+}
+
+/** Checks cached baseline object identity and directory isolation. */
+function expectCachedBaselineLoads(directories) {
+  const firstLoads = directories.map(({ directory }) =>
+    testInternals.getOrCacheBaseline(directory),
+  );
+  const repeatedLoads = directories.map(({ directory }) =>
+    testInternals.getOrCacheBaseline(directory),
+  );
+
+  for (const [index, { entry }] of directories.entries()) {
+    expect(repeatedLoads[index]).toBe(firstLoads[index]);
+    expect(repeatedLoads[index].baseline.has(entry)).toBe(true);
+    expect(repeatedLoads[index].baseline.size).toBe(1);
+  }
+}
+
+/** Checks that cache reset makes every generated directory re-read from disk. */
+function expectEmptyBaselinesAfterReset(directories) {
+  testInternals.resetBaselineCache();
+  for (const { directory } of directories) {
+    const freshLoad = testInternals.getOrCacheBaseline(directory);
+    expect(freshLoad.ok).toBe(true);
+    expect(freshLoad.baseline.size).toBe(0);
+  }
 }
 
 /**
@@ -440,6 +504,19 @@ describe("df12/tree traversal helpers", () => {
     expect(testInternals.containsNode(root, root, (node) => node.operator === "&&")).toBe(true);
     expect(testInternals.containsNode(root, root, (node) => node.operator === "||")).toBe(false);
     expect(testInternals.containsNode(root, root, (node) => node.operator === "??")).toBe(false);
+  });
+});
+
+describe("Oxlint fixture runner", () => {
+  it("rejects missing and empty lint targets before spawning Oxlint", () => {
+    expect(() => runOxlint({ configPath: "unused" })).toThrow("non-empty strings");
+    expect(() => runOxlint({ configPath: "unused", filePath: "" })).toThrow("non-empty strings");
+    expect(() => runOxlint({ configPath: "unused", filePaths: [] })).toThrow(
+      "at least one lint target",
+    );
+    expect(() => runOxlint({ configPath: "unused", filePaths: ["fixture.ts", ""] })).toThrow(
+      "non-empty strings",
+    );
   });
 });
 
@@ -843,6 +920,54 @@ describe("df12 JSDoc baseline cache process boundaries", () => {
   });
 });
 
+describe("df12 JSDoc baseline cache internals", () => {
+  it("returns the same cached baseline object until reset", () => {
+    testInternals.resetBaselineCache();
+    const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
+    try {
+      const baselinePath = path.join(directory, ".jsdoc-baseline.json");
+      writeFileSync(baselinePath, JSON.stringify({ entries: ["first.ts#value"] }), "utf8");
+
+      const firstLoad = testInternals.getOrCacheBaseline(directory);
+      writeFileSync(baselinePath, JSON.stringify({ entries: [] }), "utf8");
+      const cachedLoad = testInternals.getOrCacheBaseline(directory);
+      testInternals.resetBaselineCache();
+      const freshLoad = testInternals.getOrCacheBaseline(directory);
+
+      expect(firstLoad.ok).toBe(true);
+      expect(cachedLoad).toBe(firstLoad);
+      expect(cachedLoad.baseline.has("first.ts#value")).toBe(true);
+      expect(freshLoad.ok).toBe(true);
+      expect(freshLoad.baseline.size).toBe(0);
+    } finally {
+      rmSync(directory, { force: true, recursive: true });
+      testInternals.resetBaselineCache();
+    }
+  });
+
+  it("preserves directory isolation, repeated loads, and reset behaviour", () => {
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(fc.integer({ min: 1, max: 1_000 }), { minLength: 1, maxLength: 5 }),
+        (identifiers) => {
+          testInternals.resetBaselineCache();
+          const rootDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-"));
+          try {
+            const directories = createBaselineDirectories(rootDirectory, identifiers);
+            expectCachedBaselineLoads(directories);
+            clearBaselineFiles(directories);
+            expectEmptyBaselinesAfterReset(directories);
+          } finally {
+            rmSync(rootDirectory, { force: true, recursive: true });
+            testInternals.resetBaselineCache();
+          }
+        },
+      ),
+      { numRuns: 20 },
+    );
+  });
+});
+
 describe("df12 JSDoc baseline errors", () => {
   it("reports invalid baseline JSON and uses an empty baseline", () => {
     // Baseline cache assertions reset around each fixture so tests never rely
@@ -853,10 +978,10 @@ describe("df12 JSDoc baseline errors", () => {
       const baselinePath = path.join(directory, ".jsdoc-baseline.json");
       writeFileSync(baselinePath, "{", "utf8");
 
-      const invalidBaseline = testInternals.loadBaselineWithCache(directory);
+      const invalidBaseline = testInternals.getOrCacheBaseline(directory);
       writeFileSync(baselinePath, JSON.stringify({ entries: ["later.ts#value"] }), "utf8");
       testInternals.resetBaselineCache();
-      const reloadedBaseline = testInternals.loadBaselineWithCache(directory);
+      const reloadedBaseline = testInternals.getOrCacheBaseline(directory);
 
       expect(invalidBaseline.ok).toBe(false);
       expect(invalidBaseline.error).toBeInstanceOf(SyntaxError);
@@ -920,7 +1045,7 @@ describe("df12 JSDoc baseline errors", () => {
         "utf8",
       );
 
-      const result = testInternals.loadBaselineWithCache(directory);
+      const result = testInternals.getOrCacheBaseline(directory);
 
       expect(result.ok).toBe(false);
       expect(result.error).toBeInstanceOf(TypeError);

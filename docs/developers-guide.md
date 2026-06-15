@@ -32,7 +32,7 @@ Baseline loading is split into two stages:
   `<baselineDir>/.jsdoc-baseline.json` without caching, validates `entries` as
   an array, returns `{ baseline, error?, ok }`, and treats missing files as an
   empty baseline.
-- `loadBaselineWithCache(baselineDir = process.cwd())` memoizes
+- `getOrCacheBaseline(baselineDir = process.cwd())` memoizes
   `readBaseline` results in the module-level `baselineResultsByDirectory`
   `Map`, keyed by baseline directory. This lets repeated rule `create` calls in
   the same process reuse the same baseline object instead of re-reading from
