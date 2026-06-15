@@ -115,6 +115,11 @@ function expectExportsResolve(consumerPath, consumerDirectory) {
   expect(JSON.parse(consume.stdout)).toEqual(EXPECTED_EXPORTS);
 }
 
+/** Extracts the stable exported declaration from a generated entrypoint. */
+function exportedSpecifierDeclaration(source) {
+  return source.split("\n").find((line) => line.includes("oxlintPluginSpecifier"));
+}
+
 describe("package entry points after a clean install", () => {
   it(
     "exposes the root and oxlint-plugin exports to consumers",
@@ -143,27 +148,30 @@ describe("package entry points after a clean install", () => {
         );
         expect(pack.status).toBe(0);
         const [tarball] = JSON.parse(pack.stdout);
-        const packedPaths = tarball.files.map((entry) => entry.path);
+        const packedPaths = tarball.files.map((entry) => entry.path).sort();
         const requiredPaths = [
+          "LICENSE",
           "README.md",
           "docs/users-guide.md",
           "dist/index.d.ts",
+          "dist/index.d.ts.map",
           "dist/index.js",
+          "dist/index.js.map",
           "package.json",
           "src/index.ts",
           "tools/oxlint-plugin-df12/index.js",
-        ];
-        for (const required of requiredPaths) {
-          expect(packedPaths).toContain(required);
-        }
-        const excludedPaths = packedPaths.filter(
-          (packedPath) => packedPath.startsWith("tests/") || packedPath === "Makefile",
-        );
-        expect(excludedPaths).toEqual([]);
+        ].sort();
+        expect(packedPaths).toEqual(requiredPaths);
 
         const distDirectory = path.join(packageDirectory, "dist");
-        expect(readFileSync(path.join(distDirectory, "index.js"), "utf8")).toMatchSnapshot();
-        expect(readFileSync(path.join(distDirectory, "index.d.ts"), "utf8")).toMatchSnapshot();
+        expect(
+          exportedSpecifierDeclaration(readFileSync(path.join(distDirectory, "index.js"), "utf8")),
+        ).toMatchSnapshot();
+        expect(
+          exportedSpecifierDeclaration(
+            readFileSync(path.join(distDirectory, "index.d.ts"), "utf8"),
+          ),
+        ).toMatchSnapshot();
 
         writeFileSync(
           path.join(consumerDirectory, "package.json"),
