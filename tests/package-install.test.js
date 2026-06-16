@@ -14,7 +14,7 @@
  * unpacked) build output.
  */
 
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
   cpSync,
@@ -40,6 +40,18 @@ const EXPECTED_EXPORTS = {
   ],
   specifier: "df12-lints/oxlint-plugin",
 };
+const EXPECTED_PACKED_PATHS = [
+  "LICENSE",
+  "README.md",
+  "docs/users-guide.md",
+  "dist/index.d.ts",
+  "dist/index.d.ts.map",
+  "dist/index.js",
+  "dist/index.js.map",
+  "package.json",
+  "src/index.ts",
+  "tools/oxlint-plugin-df12/index.js",
+].sort();
 
 /** Runs a command synchronously and fails loudly on spawn errors. */
 function run(command, args, cwd) {
@@ -63,22 +75,13 @@ function copyTrackedFiles(destination) {
   }
 }
 
-let installedDirectory;
-
-/** Returns a clean-install package directory, creating it on first use. */
-function installedPackageDirectory() {
-  if (installedDirectory) return installedDirectory;
+/** Creates a clean-install package directory. */
+function createInstalledPackage() {
   const directory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-pkg-"));
   copyTrackedFiles(directory);
-  const install = run("bun", ["install"], directory);
-  expect(install.status).toBe(0);
-  installedDirectory = directory;
-  return installedDirectory;
+  const installResult = run("bun", ["install"], directory);
+  return { directory, installResult };
 }
-
-afterAll(() => {
-  if (installedDirectory) rmSync(installedDirectory, { force: true, recursive: true });
-});
 
 /** Writes a consumer module that resolves both package exports by name. */
 function writeConsumerModule(directory) {
@@ -120,13 +123,25 @@ function exportedSpecifierDeclaration(source) {
   return source.split("\n").find((line) => line.includes("oxlintPluginSpecifier"));
 }
 
-describe("package entry points after a clean install", () => {
+describe.serial("package entry points after a clean install", () => {
+  let sharedPackageDirectory;
+
+  beforeAll(() => {
+    const { directory, installResult } = createInstalledPackage();
+    expect(installResult.status).toBe(0);
+    sharedPackageDirectory = directory;
+  }, INSTALL_TIMEOUT_MS);
+
+  afterAll(() => {
+    if (sharedPackageDirectory) rmSync(sharedPackageDirectory, { force: true, recursive: true });
+  });
+
   it(
     "exposes the root and oxlint-plugin exports to consumers",
     () => {
       const consumerDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-consumer-"));
       try {
-        const consumerPath = writeConsumer(consumerDirectory, installedPackageDirectory());
+        const consumerPath = writeConsumer(consumerDirectory, sharedPackageDirectory);
         expectExportsResolve(consumerPath, consumerDirectory);
       } finally {
         rmSync(consumerDirectory, { force: true, recursive: true });
@@ -138,30 +153,18 @@ describe("package entry points after a clean install", () => {
   it(
     "ships dist in the npm pack tarball so the root export resolves",
     () => {
-      const packageDirectory = installedPackageDirectory();
+      const packageDirectory = sharedPackageDirectory;
       const consumerDirectory = mkdtempSync(path.join(os.tmpdir(), "df12-lints-tarball-"));
       try {
         const pack = run(
           "npm",
-          ["pack", "--json", "--pack-destination", packageDirectory],
+          ["pack", "--json", "--pack-destination", consumerDirectory],
           packageDirectory,
         );
         expect(pack.status).toBe(0);
         const [tarball] = JSON.parse(pack.stdout);
         const packedPaths = tarball.files.map((entry) => entry.path).sort();
-        const requiredPaths = [
-          "LICENSE",
-          "README.md",
-          "docs/users-guide.md",
-          "dist/index.d.ts",
-          "dist/index.d.ts.map",
-          "dist/index.js",
-          "dist/index.js.map",
-          "package.json",
-          "src/index.ts",
-          "tools/oxlint-plugin-df12/index.js",
-        ].sort();
-        expect(packedPaths).toEqual(requiredPaths);
+        expect(packedPaths).toEqual(EXPECTED_PACKED_PATHS);
 
         const distDirectory = path.join(packageDirectory, "dist");
         expect(
@@ -180,7 +183,7 @@ describe("package entry points after a clean install", () => {
         );
         const install = run(
           "npm",
-          ["install", "--no-audit", "--no-fund", path.join(packageDirectory, tarball.filename)],
+          ["install", "--no-audit", "--no-fund", path.join(consumerDirectory, tarball.filename)],
           consumerDirectory,
         );
         expect(install.status).toBe(0);
