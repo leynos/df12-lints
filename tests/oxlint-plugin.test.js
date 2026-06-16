@@ -931,11 +931,13 @@ describe("df12 JSDoc baseline cache internals", () => {
       const firstLoad = testInternals.getOrCacheBaseline(directory);
       writeFileSync(baselinePath, JSON.stringify({ entries: [] }), "utf8");
       const cachedLoad = testInternals.getOrCacheBaseline(directory);
+      const resolvedCachedLoad = testInternals.getOrCacheBaseline(path.join(directory, "."));
       testInternals.resetBaselineCache();
       const freshLoad = testInternals.getOrCacheBaseline(directory);
 
       expect(firstLoad.ok).toBe(true);
       expect(cachedLoad).toBe(firstLoad);
+      expect(resolvedCachedLoad).toBe(firstLoad);
       expect(cachedLoad.baseline.has("first.ts#value")).toBe(true);
       expect(freshLoad.ok).toBe(true);
       expect(freshLoad.baseline.size).toBe(0);

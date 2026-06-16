@@ -34,9 +34,10 @@ Baseline loading is split into two stages:
   empty baseline.
 - `getOrCacheBaseline(baselineDir = process.cwd())` memoizes
   `readBaseline` results in the module-level `baselineResultsByDirectory`
-  `Map`, keyed by baseline directory. This lets repeated rule `create` calls in
-  the same process reuse the same baseline object instead of re-reading from
-  disk.
+  `Map`, keyed by resolved baseline directory. This lets repeated rule `create`
+  calls in the same process reuse the same baseline object instead of
+  re-reading from disk. Error results are cached too because a lint run treats
+  the baseline file as immutable after the first read.
 - `resetBaselineCache()` clears `baselineResultsByDirectory`; tests use it to
   force a re-read when baseline files are intentionally changed and between
   lint process boundaries.

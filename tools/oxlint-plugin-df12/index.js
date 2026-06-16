@@ -83,16 +83,18 @@ function readBaseline(baselineDir) {
 // processes start with an empty cache, so cross-process freshness still holds.
 /** Gets cached baseline entries or loads and caches them for the specified directory. */
 function getOrCacheBaseline(baselineDir = process.cwd()) {
-  const cached = baselineResultsByDirectory.get(baselineDir);
+  const cacheKey = path.resolve(baselineDir);
+  const cached = baselineResultsByDirectory.get(cacheKey);
   if (cached) {
     baselineCacheMetrics.hits += 1;
-    logBaselineCache("hit", baselineDir, cached);
+    logBaselineCache("hit", cacheKey, cached);
     return cached;
   }
-  const result = readBaseline(baselineDir);
-  baselineResultsByDirectory.set(baselineDir, result);
+  const result = readBaseline(cacheKey);
+  // Cache failures too: the baseline is treated as immutable within one lint run.
+  baselineResultsByDirectory.set(cacheKey, result);
   baselineCacheMetrics.misses += 1;
-  logBaselineCache("miss", baselineDir, result);
+  logBaselineCache("miss", cacheKey, result);
   return result;
 }
 
