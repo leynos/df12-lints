@@ -6,19 +6,23 @@ projects. The main deliverable is an Oxlint plugin exposed as
 
 ## Installation
 
-`df12-lints` is not published to a registry. Install it as a tag-pinned git
-dependency:
+`df12-lints` is deliberately unpublished (`"private": true`) and is consumed
+as a git dependency pinned to a release tag. Add it to `package.json` with a
+tag reference rather than a bare commit SHA:
 
-```bash
-bun add df12-lints@github:leynos/df12-lints#v0.0.0
-# or
-npm install github:leynos/df12-lints#v0.0.0
+```json
+{
+  "devDependencies": {
+    "df12-lints": "github:leynos/df12-lints#v0.1.0"
+  }
+}
 ```
 
-The package builds its `dist/` output during install through a `prepare`
-script, so no manual build step is required. Bun blocks dependency lifecycle
-scripts by default; a Bun consumer must allow this build by listing the package
-in `trustedDependencies`:
+The package builds its root entry point (`dist/index.js`) during install
+through a `prepare` script, so no manual build step is required. npm and Yarn
+run a git dependency's `prepare` script automatically. Bun blocks dependency
+lifecycle scripts by default; a Bun consumer must allow this build by listing
+the package in `trustedDependencies`:
 
 ```json
 {
@@ -26,8 +30,17 @@ in `trustedDependencies`:
 }
 ```
 
-npm runs a git dependency's `prepare` script automatically, so npm consumers
-need no extra configuration.
+The `df12-lints/oxlint-plugin` subpath resolves to committed source and works
+even when the `prepare` script has not run.
+
+## Releases
+
+Releases are cut by tagging the repository, for example `v0.1.0`, following
+semantic versioning. Consumers upgrade by moving their pinned tag. Release tags
+are never rewritten.
+
+If the package later needs semver ranges or changelog-driven upgrades, the
+intended path is publishing to a registry and dropping `"private": true`.
 
 ## Package exports
 
