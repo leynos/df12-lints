@@ -6,3 +6,4 @@ dist/
 .bun-cache/
 tmp/
 .tmp/
+.memdb/
