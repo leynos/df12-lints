@@ -3,6 +3,9 @@
  *
  * The plugin uses Oxlint's ESLint-compatible JavaScript plugin API so the
  * project can enforce local rules without a separate linting process.
+ *
+ * Parsed JSDoc baseline entries from `.jsdoc-baseline.json` are memoised per
+ * directory to avoid redundant disk reads within a single lint process.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -22,8 +25,41 @@ const TEST_STATEMENT_NODE_TYPES = new Set([
   "WhileStatement",
 ]);
 const reportedBaselineSources = new WeakSet();
-/** Loads baseline entries from the repository root. */
-function loadBaseline(baselineDir = process.cwd()) {
+const baselineResultsByDirectory = new Map();
+const BASELINE_CACHE_DEBUG_ENV = "DF12_LINTS_DEBUG_BASELINE_CACHE";
+const baselineCacheMetrics = {
+  hits: 0,
+  misses: 0,
+};
+
+/** Reports whether baseline cache debug output is enabled. */
+function baselineCacheDebugEnabled() {
+  return process.env[BASELINE_CACHE_DEBUG_ENV] === "1";
+}
+
+/** Returns the current baseline cache hit ratio. */
+function baselineCacheHitRatio() {
+  const total = baselineCacheMetrics.hits + baselineCacheMetrics.misses;
+  if (total === 0) return "0.00";
+  return (baselineCacheMetrics.hits / total).toFixed(2);
+}
+
+/** Writes opt-in baseline cache debug output for maintainers. */
+function logBaselineCache(event, baselineDir, result) {
+  if (!baselineCacheDebugEnabled()) return;
+  const fields = [
+    `event=${event}`,
+    `directory=${JSON.stringify(baselineDir)}`,
+    `hits=${baselineCacheMetrics.hits}`,
+    `misses=${baselineCacheMetrics.misses}`,
+    `hitRatio=${baselineCacheHitRatio()}`,
+  ];
+  if (result?.error) fields.push(`error=${JSON.stringify(result.error.message)}`);
+  console.error(`[df12-lints] baseline-cache ${fields.join(" ")}`);
+}
+
+/** Reads and parses baseline entries from a directory without caching. */
+function readBaseline(baselineDir) {
   const baselinePath = path.join(baselineDir, ".jsdoc-baseline.json");
   try {
     const parsed = JSON.parse(readFileSync(baselinePath, "utf8"));
@@ -41,8 +77,34 @@ function loadBaseline(baselineDir = process.cwd()) {
   }
 }
 
-/** Keeps the test helper stable; baseline loading is intentionally uncached. */
-function resetBaselineCache() {}
+// The baseline cannot change mid-run, so each directory is read from disk at
+// most once per process; rule `create` hooks run once per file per rule and
+// would otherwise re-read the same file for every linted file. Separate lint
+// processes start with an empty cache, so cross-process freshness still holds.
+/** Gets cached baseline entries or loads and caches them for the specified directory. */
+function getOrCacheBaseline(baselineDir = process.cwd()) {
+  const cacheKey = path.resolve(baselineDir);
+  const cached = baselineResultsByDirectory.get(cacheKey);
+  if (cached) {
+    baselineCacheMetrics.hits += 1;
+    logBaselineCache("hit", cacheKey, cached);
+    return cached;
+  }
+  const result = readBaseline(cacheKey);
+  // Cache failures too: the baseline is treated as immutable within one lint run.
+  baselineResultsByDirectory.set(cacheKey, result);
+  baselineCacheMetrics.misses += 1;
+  logBaselineCache("miss", cacheKey, result);
+  return result;
+}
+
+/** Clears memoised baseline results so the next load re-reads from disk. */
+function resetBaselineCache() {
+  baselineResultsByDirectory.clear();
+  baselineCacheMetrics.hits = 0;
+  baselineCacheMetrics.misses = 0;
+  logBaselineCache("reset", "*");
+}
 
 /** Returns the working directory used for repository-relative rule state. */
 function workingDirectory(context) {
@@ -431,7 +493,7 @@ function reportBaselineError(context, node, state) {
 /** Creates per-rule JSDoc state from the lint context. */
 function jsDocRuleState(context) {
   const directory = workingDirectory(context);
-  const baselineResult = loadBaseline(directory);
+  const baselineResult = getOrCacheBaseline(directory);
   return {
     baseline: baselineResult.baseline,
     baselineError: baselineResult.error,
@@ -491,14 +553,14 @@ function isDirectStatementTest(node) {
  * @property collectExportedNames Collects names exported by a program.
  * @property containsNode Searches AST descendants while skipping nested functions.
  * @property countPredicateOperators Counts predicate operators for complex conditional checks.
- * @property loadBaseline Loads the current JSDoc baseline result.
+ * @property getOrCacheBaseline Gets or caches the current JSDoc baseline result.
  * @property resetBaselineCache Clears cached baseline state.
  */
 export const testInternals = {
   collectExportedNames,
   containsNode,
   countPredicateOperators,
-  loadBaseline,
+  getOrCacheBaseline,
   resetBaselineCache,
 };
 

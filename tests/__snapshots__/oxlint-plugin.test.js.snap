@@ -6,3 +6,10 @@ exports[`df12/complex-conditional diagnostics checks diagnostic output for a com
 1 problem
 "
 `;
+
+exports[`df12 JSDoc baseline cache behaviour reads one baseline across multiple files in a single lint process 1`] = `
+"[df12-lints] baseline-cache event=miss directory="<workspace>" hits=<count> misses=<count> hitRatio=<ratio>
+[df12-lints] baseline-cache event=hit directory="<workspace>" hits=<count> misses=<count> hitRatio=<ratio>
+[df12-lints] baseline-cache event=hit directory="<workspace>" hits=<count> misses=<count> hitRatio=<ratio>
+[df12-lints] baseline-cache event=hit directory="<workspace>" hits=<count> misses=<count> hitRatio=<ratio>"
+`;

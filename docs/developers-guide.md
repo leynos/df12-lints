@@ -51,9 +51,28 @@ The plugin registers four df12 rules:
 - `df12/require-private-jsdoc`
 
 The JSDoc rules load `.jsdoc-baseline.json` from the lint working directory.
-Baseline state is cached by working directory and injected into rule checks
-when `create(context)` runs, so test fixtures can supply an explicit directory
-without mutating `process.cwd()`.
+Baseline loading is split into two stages:
+
+- `readBaseline(baselineDir)` reads and parses
+  `<baselineDir>/.jsdoc-baseline.json` without caching, validates `entries` as
+  an array, returns `{ baseline, error?, ok }`, and treats missing files as an
+  empty baseline.
+- `getOrCacheBaseline(baselineDir = process.cwd())` memoizes
+  `readBaseline` results in the module-level `baselineResultsByDirectory`
+  `Map`, keyed by resolved baseline directory. This lets repeated rule `create`
+  calls in the same process reuse the same baseline object instead of
+  re-reading from disk. Error results are cached too because a lint run treats
+  the baseline file as immutable after the first read.
+- `resetBaselineCache()` clears `baselineResultsByDirectory`; tests use it to
+  force a re-read when baseline files are intentionally changed and between
+  lint process boundaries.
+
+Set `DF12_LINTS_DEBUG_BASELINE_CACHE=1` to emit baseline cache hit, miss,
+error, and hit-ratio details to stderr while debugging local lint runs. Normal
+lint runs do not emit cache logs.
+
+Baseline state is injected into rule checks when `create(context)` runs, so
+test fixtures can supply an explicit directory without mutating `process.cwd()`.
 
 The exported `testInternals` object is test-only surface. It exposes AST helper
 functions, baseline loading, and baseline cache reset hooks used by the Bun
