@@ -112,6 +112,21 @@ function countBaselineCacheEvents(output, event) {
   return output.split("\n").filter((line) => line.includes(`baseline-cache event=${event}`)).length;
 }
 
+/** Redacts variable baseline cache debug fields while preserving output shape. */
+function normalizeBaselineCacheDebugOutput(output) {
+  return output
+    .split("\n")
+    .filter((line) => line.includes("baseline-cache event="))
+    .map((line) =>
+      line
+        .replace(/directory="[^"]+"/, 'directory="<workspace>"')
+        .replace(/hits=\d+/, "hits=<count>")
+        .replace(/misses=\d+/, "misses=<count>")
+        .replace(/hitRatio=\d+\.\d+/, "hitRatio=<ratio>"),
+    )
+    .join("\n");
+}
+
 /** Replaces fixture-local absolute paths with stable snapshot text. */
 function normalizeDiagnostics(output, directory) {
   return output.replaceAll(directory, "<workspace>");
@@ -862,6 +877,7 @@ describe("df12 JSDoc baseline cache behaviour", () => {
       expect(result.stderr).toContain("hits=3");
       expect(result.stderr).toContain("misses=1");
       expect(result.stderr).toContain("hitRatio=0.75");
+      expect(normalizeBaselineCacheDebugOutput(result.stderr)).toMatchSnapshot();
     } finally {
       workspace.cleanup();
       testInternals.resetBaselineCache();
