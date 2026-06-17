@@ -41,6 +41,29 @@ git-ignored.
   is shipped so the emitted source maps, which reference `../src/index.ts`,
   resolve in consumers.
 
+## Distribution and versioning
+
+`df12-lints` is distributed as a git dependency pinned to release tags. Registry
+publishing was deliberately not chosen for the first consumable releases because
+this repository does not have publishing credentials or a release pipeline. The
+git-only model keeps releases reproducible without requiring each consumer to
+track raw commit SHAs.
+
+Keep `"private": true` in `package.json` while this model is in place. The flag
+is a guardrail against accidental registry publication, not a statement that the
+package cannot be consumed. Consumers install from GitHub with an immutable tag,
+for example `github:leynos/df12-lints#v0.1.0`.
+
+Versions follow semantic versioning. Cut a release by tagging the merged commit,
+for example `v0.1.0`; do not rewrite release tags after they are pushed.
+Consumers upgrade by moving their pinned tag. The `prepare` build and `files`
+whitelist are part of this release contract: git installs build `dist/`, and
+packed installs include the files named by the package export map.
+
+If consumers later need semver ranges, changelog-driven registry upgrades, or a
+non-git package source, add a proper registry release pipeline and publishing
+credentials first. Only then remove `"private": true` and publish the package.
+
 ## Oxlint plugin internals
 
 The plugin registers four df12 rules:
