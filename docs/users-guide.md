@@ -57,6 +57,47 @@ The package exposes two entrypoints:
   // oxlintPluginSpecifier === "df12-lints/oxlint-plugin"
   ```
 
+## Migrating from an in-repo fork
+
+Some df12 projects previously vendored an earlier copy of this Oxlint plugin
+inside their own repository, for example under `tools/oxlint-plugin-df12/`.
+When replacing that copy with `df12-lints/oxlint-plugin`, check these behaviour
+changes before switching the dependency:
+
+- **JSDoc baseline helper shape:** The old fork exposed a test-only
+  `testInternals.loadBaseline` helper that returned a `Set` directly. The
+  shared package now exposes `testInternals.getOrCacheBaseline`, which returns
+  a result object shaped like `{ baseline, ok, error }`; callers that inspect
+  internals must read the `baseline` property. Production consumers should not
+  depend on `testInternals`.
+- **JSDoc baseline read caching:** The shared plugin briefly read
+  `.jsdoc-baseline.json` for each rule `create` invocation, which was tracked in
+  [#6](https://github.com/leynos/df12-lints/issues/6). Current releases cache
+  the baseline result per resolved directory within one lint process, then
+  reset that cache between processes or explicit test resets.
+- **Baseline key resolution:** Repository-relative baseline keys now resolve
+  from `context.cwd`, then `context.getCwd()`, then `process.cwd()`. This is
+  more robust when Oxlint is invoked from a subdirectory, but unusual test
+  harnesses should pass the expected lint working directory through the Oxlint
+  context.
+- **Malformed baseline diagnostics:** If `.jsdoc-baseline.json` exists but
+  cannot be read or parsed, the JSDoc rules now report
+  `Could not load .jsdoc-baseline.json: ...` as an Oxlint diagnostic and
+  continue with an empty baseline. A malformed baseline that used to lint
+  cleanly must be fixed or removed.
+- **`maxLogicalOperators` validation:** The `df12/complex-conditional` option
+  now accepts only positive integers. Missing, non-integer, or non-positive
+  values fall back to `1`, so configurations that relied on raw unvalidated
+  values should be updated explicitly.
+
+The supported install method is the tag-pinned git dependency documented in
+[Installation](#installation). Packaging blockers for the root export,
+license, distribution model, and packed file list were resolved in
+[#2](https://github.com/leynos/df12-lints/issues/2),
+[#3](https://github.com/leynos/df12-lints/issues/3),
+[#4](https://github.com/leynos/df12-lints/issues/4), and
+[#5](https://github.com/leynos/df12-lints/issues/5).
+
 ## Local gates
 
 Use the Makefile targets in normal development:

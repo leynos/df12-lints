@@ -43,6 +43,10 @@ never rewritten. If the package later needs semver ranges or
 changelog-driven upgrades, the intended path is publishing to a registry and
 dropping `"private": true`.
 
+See [CHANGELOG.md](CHANGELOG.md) for release notes. Projects replacing a
+vendored in-repo copy should also read the
+[migration guide](docs/users-guide.md#migrating-from-an-in-repo-fork).
+
 ## Usage
 
 Load the plugin from an Oxlint configuration:
