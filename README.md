@@ -70,8 +70,13 @@ make check-fmt
 make typecheck
 make lint
 make test
+make spelling
 ```
 
 Those targets delegate to `package.json` scripts. See
 [docs/users-guide.md](docs/users-guide.md) for the full rule contract and maintenance
 policy.
+
+The spelling target refreshes the shared en-GB-oxendict dictionary when newer,
+regenerates `typos.toml`, and checks maintained Markdown with a pinned `typos`
+release. A valid committed config remains usable without network access.

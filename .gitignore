@@ -4,6 +4,10 @@ dist/
 .bun/
 .bun-install/
 .bun-cache/
+.typos-oxendict-base.json
+.typos-oxendict-base.toml
+__pycache__/
+*.pyc
 tmp/
 .tmp/
 .memdb/
