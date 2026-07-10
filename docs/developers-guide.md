@@ -111,6 +111,10 @@ The Makefile is the stable command surface for local work and CI wrappers:
 - `make lint` runs `bun run lint`.
 - `make test` runs `bun run test`.
 - `make markdownlint` runs `bun run lint:markdown`.
+- `make spelling` refreshes the shared en-GB-oxendict base, regenerates
+  `typos.toml`, and checks maintained Markdown with the pinned `typos` release.
+  Put narrow repository-only exceptions in `typos.local.toml`; never edit the
+  generated configuration by hand.
 
 The package scripts own the actual JavaScript and TypeScript behaviour. Keep
 new lint, format, typecheck, and test work wired through `package.json` first,
