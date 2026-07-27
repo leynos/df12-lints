@@ -6,9 +6,9 @@ projects. The main deliverable is an Oxlint plugin exposed as
 
 ## Installation
 
-`df12-lints` is deliberately unpublished (`"private": true`) and is consumed
-as a git dependency pinned to a release tag. Add it to `package.json` with a
-tag reference rather than a bare commit SHA:
+`df12-lints` is deliberately unpublished (`"private": true`) and is consumed as
+a git dependency pinned to a release tag. Add it to `package.json` with a tag
+reference rather than a bare commit SHA:
 
 ```json
 {
@@ -91,12 +91,14 @@ changes before switching the dependency:
   values should be updated explicitly.
 
 The supported install method is the tag-pinned git dependency documented in
-[Installation](#installation). Packaging blockers for the root export,
-license, distribution model, and packed file list were resolved in
-[#2](https://github.com/leynos/df12-lints/issues/2),
-[#3](https://github.com/leynos/df12-lints/issues/3),
-[#4](https://github.com/leynos/df12-lints/issues/4), and
-[#5](https://github.com/leynos/df12-lints/issues/5).
+[Installation](#installation). Packaging blockers for the root export, license,
+distribution model, and packed file list were resolved in issues [#2][issue-2],
+[#3][issue-3], [#4][issue-4], and [#5][issue-5].
+
+[issue-2]: https://github.com/leynos/df12-lints/issues/2
+[issue-3]: https://github.com/leynos/df12-lints/issues/3
+[issue-4]: https://github.com/leynos/df12-lints/issues/4
+[issue-5]: https://github.com/leynos/df12-lints/issues/5
 
 ## Local gates
 
@@ -361,6 +363,7 @@ Baseline entries should only isolate existing documentation debt. New code
 should satisfy the JSDoc rules directly, and baseline entries should be removed
 when functions are documented.
 
-If the baseline file exists but cannot be read or parsed, the JSDoc rules report
-a lint diagnostic and continue with an empty baseline. This keeps invalid
-configuration visible while still reporting the underlying documentation gaps.
+If the baseline file exists but cannot be read or parsed, the JSDoc rules
+report a lint diagnostic and continue with an empty baseline. This keeps
+invalid configuration visible while still reporting the underlying
+documentation gaps.

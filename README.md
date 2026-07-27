@@ -2,15 +2,15 @@
 
 Shared df12 lint tooling for JavaScript and TypeScript projects.
 
-The package provides an Oxlint plugin at `df12-lints/oxlint-plugin` and a
-small package metadata export from `df12-lints`. The plugin contains local
-rules for conditional complexity and JavaScript documentation contracts.
+The package provides an Oxlint plugin at `df12-lints/oxlint-plugin` and a small
+package metadata export from `df12-lints`. The plugin contains local rules for
+conditional complexity and JavaScript documentation contracts.
 
 ## Installation
 
-The package is deliberately unpublished (`"private": true`) and is consumed
-as a git dependency pinned to a release tag. Add it to `package.json` with a
-tag reference rather than a bare commit SHA:
+The package is deliberately unpublished (`"private": true`) and is consumed as
+a git dependency pinned to a release tag. Add it to `package.json` with a tag
+reference rather than a bare commit SHA:
 
 ```json
 {
@@ -22,8 +22,8 @@ tag reference rather than a bare commit SHA:
 
 The `prepare` script builds the root entry point (`dist/index.js`) at install
 time. npm and Yarn run a git dependency's `prepare` script automatically. Bun
-blocks dependency lifecycle scripts by default, so Bun consumers must trust
-the package first:
+blocks dependency lifecycle scripts by default, so Bun consumers must trust the
+package first:
 
 ```json
 {
@@ -39,9 +39,9 @@ even when the `prepare` script has not run. See
 
 Releases are cut by tagging the repository (for example `v0.1.0`), following
 semantic versioning. Consumers upgrade by moving their pinned tag; tags are
-never rewritten. If the package later needs semver ranges or
-changelog-driven upgrades, the intended path is publishing to a registry and
-dropping `"private": true`.
+never rewritten. If the package later needs semver ranges or changelog-driven
+upgrades, the intended path is publishing to a registry and dropping
+`"private": true`.
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes. Projects replacing a
 vendored in-repo copy should also read the
@@ -74,8 +74,8 @@ make spelling
 ```
 
 Those targets delegate to `package.json` scripts. See
-[docs/users-guide.md](docs/users-guide.md) for the full rule contract and maintenance
-policy.
+[docs/users-guide.md](docs/users-guide.md) for the full rule contract and
+maintenance policy.
 
 The spelling target refreshes the shared en-GB-oxendict dictionary when newer,
 regenerates `typos.toml`, and checks maintained Markdown with a pinned `typos`

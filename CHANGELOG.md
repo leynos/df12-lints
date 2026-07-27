@@ -11,15 +11,15 @@ guide._
 
 - **JSDoc baseline:** Baseline loading now returns a result object with
   `{ baseline, ok, error }` state through the test-only helper surface instead
-  of returning a `Set` directly, and current releases memoize baseline reads per
-  directory within one lint process ([#6], [#12]).
+  of returning a `Set` directly, and current releases memoize baseline reads
+  per directory within one lint process ([#6], [#12]).
 - **JSDoc baseline:** Repository-relative baseline keys now resolve from
   `context.cwd`, then `context.getCwd()`, then `process.cwd()`, so Oxlint
   invocations from subdirectories can still use repository-relative entries
   when the lint context provides its working directory ([#12]).
 - **JSDoc baseline:** Malformed `.jsdoc-baseline.json` files now report an
-  Oxlint diagnostic instead of being silently treated as an empty baseline
-  ([#12]).
+  Oxlint diagnostic instead of being silently treated as an empty baseline, as
+  tracked by [issue 12][#12].
 - **Complex conditional:** `maxLogicalOperators` is now validated as a positive
   integer, with invalid values falling back to `1` ([#12]).
 - **Distribution:** The supported installation model is a git dependency pinned

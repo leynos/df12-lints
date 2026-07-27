@@ -1,9 +1,8 @@
 # Import df12 Oxlint lints from simulacat-core
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. The sections `Constraints`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
 
@@ -28,11 +27,12 @@ major milestone.
 ## Constraints
 
 Follow all repository instructions. The active branch is `import-lints`; do not
-work on `main`. There is no in-repository `AGENTS.md` file at the time this plan
-is drafted, so the user-provided instructions govern this work.
+work on `main`. There is no in-repository `AGENTS.md` file at the time this
+plan is drafted, so the user-provided instructions govern this work.
 
-Use `grepai search --workspace Projects --project $(get-project) ... --toon
---compact` as the primary semantic exploration tool. If the index is empty or
+Use
+`grepai search --workspace Projects --project $(get-project) … --toon --compact`
+as the primary semantic exploration tool. If the index is empty or
 unavailable, fall back to exact file inspection with standard tools. `grepai`
 returned no matches for this small repository during planning, so the initial
 plan is based on direct inspection after recording that fallback.
@@ -45,8 +45,8 @@ leta workspace add /data/leynos/Projects/df12-lints
 
 Testing and linting behaviour must be driven by `package.json` scripts and
 wrapped by Makefile targets. The Makefile should not contain bespoke command
-logic for JavaScript and TypeScript gates where an equivalent package script can
-own it.
+logic for JavaScript and TypeScript gates where an equivalent package script
+can own it.
 
 Run deterministic gates before requesting CodeRabbit. For every major
 milestone, run these commands sequentially, logging each with `tee` to a
@@ -91,14 +91,14 @@ Stop and ask for direction if `make check-fmt`, `make typecheck`, `make lint`,
 or `make test` cannot be made green without changes outside this repository or
 without de-scoping requested behaviour.
 
-Stop and ask for direction if `coderabbit review --agent` is unavailable because
-of authentication or service errors after deterministic gates pass. Record the
-exact failure and continue only after the user decides whether CodeRabbit may be
-skipped for that milestone.
+Stop and ask for direction if `coderabbit review --agent` is unavailable
+because of authentication or service errors after deterministic gates pass.
+Record the exact failure and continue only after the user decides whether
+CodeRabbit may be skipped for that milestone.
 
 Stop and ask for direction if importing the upstream tests requires adding
-runtime dependencies that are not already present in `simulacat-core` or are not
-directly justified by the lint package. `fast-check`, `oxlint`, and
+runtime dependencies that are not already present in `simulacat-core` or are
+not directly justified by the lint package. `fast-check`, `oxlint`, and
 `markdownlint-cli2` are acceptable because upstream already uses them for these
 tooling gates.
 
@@ -111,11 +111,10 @@ small TypeScript surface only where consumers need package metadata or paths.
 Converting the plugin to TypeScript should be deferred unless packaging demands
 it.
 
-The upstream tests currently import from
-`../tools/oxlint-plugin-df12/index.js` and execute `bunx oxlint` against
-temporary fixture workspaces. In this repository, the test paths and package
-name should change, but the behaviour assertions should stay close to upstream
-so future diffs remain reviewable.
+The upstream tests currently import from `../tools/oxlint-plugin-df12/index.js`
+and execute `bunx oxlint` against temporary fixture workspaces. In this
+repository, the test paths and package name should change, but the behaviour
+assertions should stay close to upstream so future diffs remain reviewable.
 
 The upstream `simulacat-core` repository has existing source files with lint
 debt, baselines, generated schemas, and project-specific docs. This repository
@@ -129,8 +128,8 @@ exports and documentation rather than suppressing violations.
 
 CodeRabbit may report broad design suggestions. Treat concrete correctness,
 packaging, testing, documentation, and maintainability findings as required.
-Escalate only when a suggestion conflicts with the stated lint contract or would
-substantially expand scope beyond the import.
+Escalate only when a suggestion conflicts with the stated lint contract or
+would substantially expand scope beyond the import.
 
 ## Progress
 
@@ -140,16 +139,15 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Loaded the `execplans` skill and `leta` skill.
 - [x] 2026-05-26: Added `/data/leynos/Projects/df12-lints` as a `leta`
   workspace.
-- [x] 2026-05-26: Ran `grepai search --workspace Projects --project
-  $(get-project) "custom lint rule definitions and tests" --toon --compact`;
-  it returned no matches, so planning used exact file inspection.
+- [x] 2026-05-26: Ran a compact TOON GrepAI search in the `Projects`
+      workspace for custom lint rule definitions and tests. It returned no
+      matches, so planning used exact file inspection.
 - [x] 2026-05-26: Cloned `https://github.com/leynos/simulacat-core` to
   `/tmp/simulacat-core-import-lints` for source inspection and recorded HEAD as
   `af296735bb5d60794a603504fa3629698699ccd5`.
 - [x] 2026-05-26: Inspected upstream `tools/oxlint-plugin-df12/index.js`,
-  `.oxlintrc.json`, `tests/oxlint-plugin.test.js`, `biome.json`,
-  `Makefile`, `package.json`, `docs/development.md`, and
-  `docs/architecture.md`.
+  `.oxlintrc.json`, `tests/oxlint-plugin.test.js`, `biome.json`, `Makefile`,
+  `package.json`, `docs/development.md`, and `docs/architecture.md`.
 - [x] 2026-05-26: Drafted this ExecPlan at
   `docs/execplans/import-lints.md`.
 - [x] 2026-05-26: Ran `make check-fmt`, `make typecheck`, `make lint`, and
@@ -233,8 +231,7 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Started Milestone 3 and tightened `biome.jsonc` by enabling
   Git VCS metadata, disabling Assist, including `.oxlintrc.json` and
   `tools/**/*`, and enabling `noExcessiveCognitiveComplexity`,
-  `noExcessiveLinesPerFunction`, and `useMaxParams` with the planned
-  thresholds.
+  `noExcessiveLinesPerFunction`, and `useMaxParams` with the planned thresholds.
 - [x] 2026-05-26: Ran `bun run fmt`; Biome formatted one newly included file.
 - [x] 2026-05-26: Ran Milestone 3 deterministic gates before this progress
   update. `make check-fmt`, `make typecheck`, `make lint`, and `make test` all
@@ -249,8 +246,9 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Committed Milestone 3 as
   `70fda6e Tighten Biome lint settings`.
 - [x] 2026-05-26: Started Milestone 4 and added `README.md` plus
-  `docs/users-guide.md` covering Makefile gates, package scripts, downstream Oxlint
-  configuration, rule behaviour, suppression policy, and JSDoc baseline policy.
+  `docs/users-guide.md` covering Makefile gates, package scripts, downstream
+  Oxlint configuration, rule behaviour, suppression policy, and JSDoc baseline
+  policy.
 - [x] 2026-05-26: Added `lint:markdown` to `package.json`, changed the
   Makefile `markdownlint` target to delegate to `bun run lint:markdown`, and
   added `markdownlint-cli2@0.22.1` to the lockfile with `bun install`.
@@ -276,8 +274,8 @@ substantially expand scope beyond the import.
   documentation review fixes. `make check-fmt`, `make typecheck`, `make lint`,
   `make test`, and `make markdownlint` all passed.
 - [x] 2026-05-26: Reran `coderabbit review --agent` for Milestone 4. It raised
-  one remaining grammar finding in `docs/users-guide.md`: use "add a complete JSDoc"
-  rather than "add complete JSDoc".
+  one remaining grammar finding in `docs/users-guide.md`: use "add a complete
+  JSDoc" rather than "add complete JSDoc".
 - [x] 2026-05-26: Patched the final grammar finding in `docs/users-guide.md`.
 - [x] 2026-05-26: Reran Milestone 4 deterministic gates after the final grammar
   fix. `make check-fmt`, `make typecheck`, `make lint`, `make test`, and
@@ -299,24 +297,25 @@ substantially expand scope beyond the import.
 - [x] 2026-05-26: Marked this ExecPlan complete.
 - [x] 2026-06-02: Verified follow-up review findings against the current branch.
   The ExecPlan spelling, Makefile `markdownlint` prerequisite, package lint
-  script coverage, Oxlint fixture timeout, and baseline-cache isolation findings
-  were all still valid and were fixed.
+  script coverage, Oxlint fixture timeout, and baseline-cache isolation
+  findings were all still valid and were fixed.
 - [x] 2026-06-02: Verified the broader failed-check report. Added the prescribed
   user and developer guide entrypoints, documented why Rust `trybuild` is not
-  applicable, added workflow-contract tests, and refactored JSDoc baseline state
-  so rules receive directory-keyed baseline state during `create(context)`.
+  applicable, added workflow-contract tests, and refactored JSDoc baseline
+  state so rules receive directory-keyed baseline state during
+  `create(context)`.
 - [x] 2026-06-02: Verified the next failed-check report. The exact `test:all`
-  command-boundary assertion was already fixed, while module-level documentation,
-  explicit baseline parse-error reporting, and symmetric baseline cache resets
-  were still valid and were updated.
+  command-boundary assertion was already fixed, while module-level
+  documentation, explicit baseline parse-error reporting, and symmetric
+  baseline cache resets were still valid and were updated.
 - [x] 2026-06-03: Verified the architecture, observability, concurrency, and
   behavioural coverage findings. Removed shared baseline caching, surfaced
   invalid baseline files as lint diagnostics, documented invalid-baseline
   behaviour, and added behavioural coverage for binding patterns, missing error
   docs, and loop predicate statements.
 - [x] 2026-06-03: Verified follow-up review findings. Added once-per-file
-  baseline error reporting, rejected non-array `parsed.entries` values, and
-  made `docs/users-guide.md` the single canonical guide by deleting the duplicate
+  baseline error reporting, rejected non-array `parsed.entries` values, and made
+  `docs/users-guide.md` the single canonical guide by deleting the duplicate
   guide file and updating references.
 
 ## Surprises & Discoveries
@@ -332,14 +331,14 @@ The current Makefile partly satisfies the requested shape but needs tightening.
 wrapped through a package script for consistency.
 
 Milestone 1 confirmed that the current `biome.jsonc` `files.includes` list
-limits Biome to `src`, `tests`, and selected root config files even when package
-scripts pass `.`. The imported Oxlint plugin remains in upstream formatting
-style until the stricter Biome milestone decides whether tools are included in
-Biome formatting.
+limits Biome to `src`, `tests`, and selected root config files even when
+package scripts pass `.`. The imported Oxlint plugin remains in upstream
+formatting style until the stricter Biome milestone decides whether tools are
+included in Biome formatting.
 
 The first Milestone 1 CodeRabbit review found two real issues in the upstream
-plugin import: `maxLogicalOperators` accepted invalid configured values, and the
-exported `testInternals` object lacked public documentation. Both fixes are
+plugin import: `maxLogicalOperators` accepted invalid configured values, and
+the exported `testInternals` object lacked public documentation. Both fixes are
 local improvements over the pinned upstream source.
 
 Milestone 2 kept the upstream snapshot approach because the diagnostic output
@@ -380,8 +379,8 @@ outside this ExecPlan's provenance notes.
 
 Upstream `simulacat-core` runs Biome and Oxlint separately: `lint` depends on
 `biomejs` and `oxlint`, `biomejs` runs `bun run lint`, and `oxlint` runs
-`bunx oxlint .`. For this package, the same split should live in
-`package.json` scripts first, with the Makefile delegating to those scripts.
+`bunx oxlint .`. For this package, the same split should live in `package.json`
+scripts first, with the Makefile delegating to those scripts.
 
 Upstream custom rules are:
 
@@ -405,9 +404,9 @@ Upstream also enables Oxlint's built-in `complexity` rule at max 8 with the
 requires explicit approval before implementation, so this plan describes the
 full import but does not begin code movement until the user approves.
 
-2026-05-26: Use upstream commit
-`af296735bb5d60794a603504fa3629698699ccd5` as the source reference. This makes
-the import auditable and avoids silently tracking a moving upstream branch.
+2026-05-26: Use upstream commit `af296735bb5d60794a603504fa3629698699ccd5` as
+the source reference. This makes the import auditable and avoids silently
+tracking a moving upstream branch.
 
 2026-05-26: Plan to preserve the Oxlint plugin as JavaScript for the import.
 The upstream file already uses ESM syntax and the Oxlint JavaScript plugin API;
@@ -508,8 +507,7 @@ Update `package.json` so scripts own every deterministic gate:
 Use the currently installed Biome package name style consistently. If the lock
 file or current dependency set prefers `bunx biome`, keep that spelling; if
 aligning with upstream, use `bunx @biomejs/biome`. The final Makefile must call
-`bun run check:fmt`, `bun run check:types`, `bun run lint`, and
-`bun run test`.
+`bun run check:fmt`, `bun run check:types`, `bun run lint`, and `bun run test`.
 
 Add required development dependencies:
 
@@ -661,8 +659,8 @@ repository contract, and expose it through `package.json` plus the Makefile:
 ```
 
 The Makefile `markdownlint` target should delegate to `bun run lint:markdown`.
-Do not add `markdownlint` to `make all` unless the repository convention or user
-explicitly requests it.
+Do not add `markdownlint` to `make all` unless the repository convention or
+user explicitly requests it.
 
 Validation:
 
@@ -679,8 +677,8 @@ git commit -m "Document df12 lint package usage"
 ```
 
 Expected result: documentation explains the package from a fresh clone, all
-deterministic gates pass, Markdown lint passes if configured, and CodeRabbit has
-no applicable concerns.
+deterministic gates pass, Markdown lint passes if configured, and CodeRabbit
+has no applicable concerns.
 
 ### Milestone 5: Final integration pass
 
@@ -743,8 +741,8 @@ CodeRabbit review again before committing or moving to the next milestone.
 ## Outcomes & Retrospective
 
 The custom df12 Oxlint rules from `simulacat-core` were imported into
-`tools/oxlint-plugin-df12/index.js`, exposed as `df12-lints/oxlint-plugin`,
-and wired into `.oxlintrc.json`.
+`tools/oxlint-plugin-df12/index.js`, exposed as `df12-lints/oxlint-plugin`, and
+wired into `.oxlintrc.json`.
 
 `package.json` owns the JavaScript and TypeScript gate commands. The Makefile
 wraps those package scripts for `check-fmt`, `typecheck`, `lint`, `test`, and
@@ -752,17 +750,17 @@ wraps those package scripts for `check-fmt`, `typecheck`, `lint`, `test`, and
 
 The package now has behavioural coverage for the Oxlint plugin in
 `tests/oxlint-plugin.test.js`, including complex conditional diagnostics,
-property-based predicate counting, JSDoc rule behaviours, baseline handling, and
-the local invalid-`maxLogicalOperators` regression. The snapshot is stable
+property-based predicate counting, JSDoc rule behaviours, baseline handling,
+and the local invalid-`maxLogicalOperators` regression. The snapshot is stable
 because fixture paths are normalized to `<workspace>`.
 
 Biome now enforces the stricter complexity contract over source, tests, root
 configuration files, `.oxlintrc.json`, and `tools/**/*`. No Biome suppressions
 were needed.
 
-Consumer documentation now lives in `README.md` and `docs/users-guide.md`. It covers
-local gates, downstream Oxlint configuration, each `df12/*` rule, suppression
-policy, and `.jsdoc-baseline.json` policy.
+Consumer documentation now lives in `README.md` and `docs/users-guide.md`. It
+covers local gates, downstream Oxlint configuration, each `df12/*` rule,
+suppression policy, and `.jsdoc-baseline.json` policy.
 
 Final validation passed:
 

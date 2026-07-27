@@ -19,6 +19,7 @@ clean: ## Remove build artifacts
 
 fmt: build ## Format sources
 	bun run fmt
+	mdformat-all
 
 check-fmt: build ## Verify formatting
 	bun run check:fmt
