@@ -11,3 +11,9 @@ __pycache__/
 tmp/
 .tmp/
 .memdb/
+.vtcode/
+.claude/
+.grepai/
+*.swp
+*.swo
+*~
