@@ -2,6 +2,16 @@
 
 .DEFAULT_GOAL := all
 
+MDLINT ?= $(shell command -v markdownlint-cli2 2>/dev/null || printf '%s' "node_modules/.bin/markdownlint-cli2")
+# `make fmt` and `make check-fmt` call mdtablefix directly. `--git` selects the
+# Markdown files Git tracks and `--include-untracked` adds the untracked files
+# Git does not ignore, so a new document is formatted before it is staged.
+# Both modes need mdtablefix 0.6.0 or later; CI pins the version at the
+# install-mdtablefix step.
+MDTABLEFIX ?= mdtablefix
+MDTABLEFIX_SELECT = --git --include-untracked
+MDTABLEFIX_RULES = --wrap --renumber --breaks --ellipsis --fences
+
 all: build check-fmt lint typecheck test spelling
 
 TYPOS_VERSION ?= 1.48.0
@@ -19,10 +29,12 @@ clean: ## Remove build artifacts
 
 fmt: build ## Format sources
 	bun run fmt
-	mdformat-all
+	$(MDTABLEFIX) --in-place $(MDTABLEFIX_SELECT) $(MDTABLEFIX_RULES)
+	$(MDLINT) --fix "**/*.md"
 
 check-fmt: build ## Verify formatting
 	bun run check:fmt
+	$(MDTABLEFIX) --check $(MDTABLEFIX_SELECT) $(MDTABLEFIX_RULES)
 
 lint: build ## Run linters
 	bun run lint
