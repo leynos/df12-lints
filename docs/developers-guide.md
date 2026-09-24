@@ -132,7 +132,7 @@ install and an `npm pack` tarball install — and imports both exports by packag
 name from a Node.js consumer. The tarball case also snapshots the compiled
 `dist/index.js` and `dist/index.d.ts`, so TypeScript emit drift is caught
 alongside the runtime-resolution checks, and asserts the `files` whitelist keeps
-`dist/` in the packed artifact.
+`dist/` in the packed artefact.
 
 The repository has no Rust compile-time API. Rust-specific `trybuild` tests are
 therefore not applicable to this package; TypeScript compile-time validation is
