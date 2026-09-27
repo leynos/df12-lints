@@ -1,3 +1,11 @@
+# `make fmt` and `make check-fmt` call mdtablefix directly. `--git` selects the
+# Markdown files Git tracks and `--include-untracked` adds the untracked files
+# Git does not ignore, so a new document is formatted before it is staged.
+# Both modes need mdtablefix 0.6.0 or later.
+MDTABLEFIX ?= mdtablefix
+MDTABLEFIX_SELECT = --git --include-untracked
+MDTABLEFIX_RULES = --wrap --renumber --breaks --ellipsis --fences
+
 .PHONY: help all clean build lint fmt check-fmt typecheck test markdownlint spelling
 
 .DEFAULT_GOAL := all
@@ -20,9 +28,11 @@ clean: ## Remove build artifacts
 fmt: build ## Format sources
 	bun run fmt
 	mdformat-all
+	$(MDTABLEFIX) --in-place $(MDTABLEFIX_SELECT) $(MDTABLEFIX_RULES)
 
 check-fmt: build ## Verify formatting
 	bun run check:fmt
+	$(MDTABLEFIX) --check $(MDTABLEFIX_SELECT) $(MDTABLEFIX_RULES)
 
 lint: build ## Run linters
 	bun run lint
