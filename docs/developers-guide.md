@@ -106,7 +106,8 @@ behavioural tests. Production consumers should load only
 
 The Makefile is the stable command surface for local work and CI wrappers:
 
-- `make check-fmt` runs `bun run check:fmt`.
+- `make check-fmt` runs `bun run check:fmt`, then `mdtablefix --check` over the
+  Markdown that Git tracks or has not ignored.
 - `make typecheck` runs `bun run check:types`.
 - `make lint` runs `bun run lint`.
 - `make test` runs `bun run test`.
@@ -115,6 +116,23 @@ The Makefile is the stable command surface for local work and CI wrappers:
   `typos.toml`, and checks maintained Markdown with the pinned `typos` release.
   Put narrow repository-only exceptions in `typos.local.toml`; never edit the
   generated configuration by hand.
+
+Markdown formatting uses mdtablefix 0.6.0 or later, which CI installs through
+the pinned `install-mdtablefix` action; install it locally with
+`cargo install --locked mdtablefix --version 0.6.0`. `make fmt` runs
+`mdtablefix --in-place` and then `markdownlint-cli2 --fix` directly, and
+`make check-fmt` runs `mdtablefix --check`, both with
+`--git --include-untracked --wrap --renumber --breaks --ellipsis --fences`. The
+`markdown-formatting` job in `.github/workflows/markdownlint.yml` repeats that
+check without a build, and the `markdownlint` job beside it lints `**/*.md`
+with the configuration in `.markdownlint-cli2.jsonc`. Concordat's
+`markdown-formatting-baseline` rule audits this wiring:
+`concordat artefact rule run markdown-formatting-baseline`.
+
+`make fmt` finds the package-local `markdownlint-cli2` through the Makefile's
+`node_modules/.bin` entry on `PATH`. Set `MDLINT` (for example
+`make fmt MDLINT=/usr/local/bin/markdownlint-cli2`) to use another binary, and
+`MDTABLEFIX` to do the same for mdtablefix.
 
 The package scripts own the actual JavaScript and TypeScript behaviour. Keep
 new lint, format, typecheck, and test work wired through `package.json` first,

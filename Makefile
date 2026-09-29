@@ -2,6 +2,11 @@
 # Markdown files Git tracks and `--include-untracked` adds the untracked files
 # Git does not ignore, so a new document is formatted before it is staged.
 # Both modes need mdtablefix 0.6.0 or later.
+# `build` installs markdownlint-cli2 as a package dependency, under
+# node_modules/.bin, which is not on a recipe shell's PATH; naming it here lets
+# `make fmt` find it on a checkout with no global installation.
+export PATH := $(CURDIR)/node_modules/.bin:$(PATH)
+MDLINT ?= markdownlint-cli2
 MDTABLEFIX ?= mdtablefix
 MDTABLEFIX_SELECT = --git --include-untracked
 MDTABLEFIX_RULES = --wrap --renumber --breaks --ellipsis --fences
@@ -27,8 +32,8 @@ clean: ## Remove build artifacts
 
 fmt: build ## Format sources
 	bun run fmt
-	mdformat-all
 	$(MDTABLEFIX) --in-place $(MDTABLEFIX_SELECT) $(MDTABLEFIX_RULES)
+	$(MDLINT) --fix "**/*.md"
 
 check-fmt: build ## Verify formatting
 	bun run check:fmt

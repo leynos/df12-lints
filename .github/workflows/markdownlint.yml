@@ -1,0 +1,44 @@
+name: Markdown lint
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Lint Markdown
+        uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff  # v24.2.0
+        with:
+          globs: '**/*.md'
+
+  markdown-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Install mdtablefix
+        # `mdtablefix --check --git` needs 0.6.0 or later, the first release
+        # with `--check` and `--git`.
+        uses: leynos/shared-actions/.github/actions/install-mdtablefix@a5765019912a8ab6882b12db049c7cde635f3a85
+        with:
+          version: "0.6.0"
+
+      - name: Check Markdown formatting
+        # `make check-fmt` also builds and runs Biome, which would need a Bun
+        # toolchain in this job, so the Markdown half runs directly. The flags
+        # match the Makefile's MDTABLEFIX_SELECT and MDTABLEFIX_RULES.
+        run: mdtablefix --check --git --include-untracked --wrap --renumber --breaks --ellipsis --fences
