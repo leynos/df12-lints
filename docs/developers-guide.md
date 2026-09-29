@@ -129,6 +129,11 @@ with the configuration in `.markdownlint-cli2.jsonc`. Concordat's
 `markdown-formatting-baseline` rule audits this wiring:
 `concordat artefact rule run markdown-formatting-baseline`.
 
+`make fmt` finds the package-local `markdownlint-cli2` through the Makefile's
+`node_modules/.bin` entry on `PATH`. Set `MDLINT` (for example
+`make fmt MDLINT=/usr/local/bin/markdownlint-cli2`) to use another binary, and
+`MDTABLEFIX` to do the same for mdtablefix.
+
 The package scripts own the actual JavaScript and TypeScript behaviour. Keep
 new lint, format, typecheck, and test work wired through `package.json` first,
 then wrap it with the Makefile when a stable target is needed.
