@@ -33,7 +33,7 @@ jobs:
       - name: Install mdtablefix
         # `mdtablefix --check --git` needs 0.6.0 or later, the first release
         # with `--check` and `--git`.
-        uses: leynos/shared-actions/.github/actions/install-mdtablefix@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/install-mdtablefix@7d751eded578e48dacf43ab173d5820e6437c474
         with:
           version: "0.6.0"
 
