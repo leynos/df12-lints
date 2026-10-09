@@ -119,7 +119,7 @@ The Makefile is the stable command surface for local work and CI wrappers:
 
 Markdown formatting uses mdtablefix 0.6.0 or later, which CI installs through
 the pinned `install-mdtablefix` action; install it locally with
-`cargo install --locked mdtablefix --version 0.6.0`. `make fmt` runs
+`cargo install --locked mdtablefix --version 0.6.1`. `make fmt` runs
 `mdtablefix --in-place` and then `markdownlint-cli2 --fix` directly, and
 `make check-fmt` runs `mdtablefix --check`, both with
 `--git --include-untracked --wrap --renumber --breaks --ellipsis --fences`. The
