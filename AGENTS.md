@@ -1,3 +1,5 @@
+# Repository guidelines
+
 <!-- typos-config-builder:agents-md:start -->
 
 ## Spelling
